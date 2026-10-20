@@ -12,6 +12,7 @@ from rich.measure import Measurement
 from rich.segment import Segment
 from rich.style import Style
 from rich.text import Text
+from textual import events
 from textual.binding import Binding
 from textual.color import Color as TextualColor
 from textual.containers import VerticalScroll
@@ -157,6 +158,13 @@ class SessionList(OptionList):
             return
         index = next((i for i, r in enumerate(rows) if r.key == keep_key), 0)
         self.highlighted = index
+
+    def _on_mouse_move(self, event: events.MouseMove) -> None:
+        """One highlight for mouse and keyboard: hovering moves the cursor (no separate hover tint)."""
+        event.prevent_default()  # OptionList's handler would track a hover row of its own
+        option = event.style.meta.get("option")
+        if option is not None and option != self.highlighted:
+            self.highlighted = option
 
     def current(self) -> SessionRow | None:
         if self.highlighted is None or not 0 <= self.highlighted < len(self.rows):

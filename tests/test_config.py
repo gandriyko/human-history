@@ -42,7 +42,7 @@ def test_custom_colors(tmp_path):
 
 EXAMPLE = """
 [ui]
-theme = "dark"
+theme = "nord"
 show_tool_calls = false
 show_tool_results = false
 show_reasoning = false

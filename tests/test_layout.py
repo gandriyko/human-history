@@ -44,7 +44,7 @@ def test_shortcuts_work_on_cyrillic_layout(config, db, tmp_path, monkeypatch):
             assert search.value == "пр"
             await pilot.press("ctrl+г")  # Ctrl+U on the Cyrillic layout: scope = my prompts
             assert app.scope == "user"
-            await pilot.press("escape")  # to the list
+            await pilot.press("escape", "escape")  # clears the search, then to the list
             await pilot.press("ф")  # "a": cycle agent
             assert app.query_one("#agent", Select).value == "claude"
             await pilot.press("comma")  # "?": help

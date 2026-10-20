@@ -43,6 +43,11 @@ def test_browse_read_and_search(config, db, tmp_path, monkeypatch):
             assert sessions.highlighted == 2
             await pilot.press("ctrl+p", "ctrl+p")
             assert sessions.highlighted == 0 and search.has_focus
+            # the mouse moves the same single highlight (no separate hover row)
+            await pilot.hover(SessionList, offset=(10, 1))
+            assert sessions.highlighted == 1 and sessions._mouse_hovering_over is None
+            await pilot.press("up")
+            assert sessions.highlighted == 0
 
             # Enter opens each session full-width; nothing technical is rendered; Esc returns to search
             for index in range(3):
@@ -58,15 +63,13 @@ def test_browse_read_and_search(config, db, tmp_path, monkeypatch):
                 await pilot.press("escape")
                 assert home.display and not conv.display and search.has_focus
 
-            # Esc: search box -> list (single-key actions work there) -> back to search, cleared
+            # Esc clears the whole query at once; on an empty search it goes to the list
             await pilot.press(*"zzz", "escape")
-            assert sessions.has_focus and search.value == "zzz"
-            await pilot.press("escape")
             assert search.has_focus and search.value == ""
+            await pilot.press("escape")  # clearing did not arm quitting
+            assert app.is_running and sessions.has_focus  # single-key actions work there
 
             # header: agent filter (a) and the project picker for worktree/repository filtering
-            app._last_escape = 0  # a pause: a quick second Esc on an empty search would quit
-            await pilot.press("escape")  # to the list, where single-key actions work
             await pilot.press("a")
             assert {r.agent for r in sessions.rows} == {"claude"}
             assert app.query_one("#agent", Select).value == "claude"
@@ -164,7 +167,9 @@ def test_resume_asks_for_directory_and_returns_plan(config, db, tmp_path, monkey
         index_all(db, config)
         async with app.run_test(size=(120, 40)) as pilot:
             await pilot.pause(0.3)
-            await pilot.press("escape", "r")  # Esc: from the search box to the list, where r resumes
+            await pilot.press("enter")  # with a query typed, r works from the opened conversation
+            await pilot.pause(0.3)
+            await pilot.press("r")
             await pilot.pause(0.2)
             assert isinstance(app.screen, ResumeDirectoryScreen)
             # original directory (/work/old) does not exist -> plan is refused with an error

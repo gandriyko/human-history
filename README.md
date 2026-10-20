@@ -84,7 +84,7 @@ At start the cursor is in the search box. `Enter` opens the selected conversatio
 | `Enter` | Open the selected conversation for reading (this does not resume it) |
 | `Tab` | Cycle scope: prompts → answers → both → titles |
 | `Ctrl+U` / `Ctrl+A` / `Ctrl+Shift+A` | Prompts only / answers only / both |
-| `Esc` | Move to the list and keep the results, so single-key actions such as `r`, `f`, `i`, `q` work |
+| `Esc` | Clear the whole search at once. On an empty search, move to the list, where single-key actions such as `r`, `f`, `i`, `q` work |
 
 **Session list**
 
@@ -92,11 +92,12 @@ At start the cursor is in the search box. `Enter` opens the selected conversatio
 |---|---|
 | `j` `k` `↑` `↓` | Move through sessions |
 | `Enter` | Open the conversation |
-| `/` or `Esc` | Back to the search box. `Esc` also clears the search text |
+| `Esc` | Back to the search box |
 | `p` | Project filter: worktree → repository → all (remembered) |
 | `o` | Choose a project (opens the dropdown) |
 | `a` | Agent: all → Claude → Codex → OpenCode → Copilot → Pi |
 | `s` | Sort: recent / created / title (remembered) |
+| `t` | Theme picker with live preview (remembered) |
 
 **Conversation**
 
@@ -183,7 +184,7 @@ The complete file, with every option set to its default, is
 
 | Section | What it controls |
 |---|---|
-| `[ui]` | Theme and date format |
+| `[ui]` | Theme (see [Themes](#themes)) and date format |
 | `[colors]` | Selection, scrollbar, project/agent and search-match colours |
 | `[search]` | Default scope, project filter, sort order and list size |
 | `[resume]` | Directory policy (`ask` / `current` / `original`), Herdr placement, auto-close |
@@ -245,15 +246,28 @@ resume = "r,ctrl+o"
 quit = "q,ctrl+q"
 ```
 
-Use a light terminal theme with fewer background refreshes:
+Use a fixed theme and fewer background refreshes:
 
 ```toml
 [ui]
-theme = "light"                # or any Textual theme: nord, gruvbox, tokyo-night, …
+theme = "gruvbox-light"
 
 [index]
 refresh_interval_seconds = 120
 ```
+
+### Themes
+
+The themes have the same names as Herdr's: `terminal`, `catppuccin`, `catppuccin-latte`,
+`tokyo-night`, `tokyo-night-day`, `dracula`, `nord`, `gruvbox`, `gruvbox-light`, `one-dark`,
+`one-light`, `solarized`, `solarized-light`.
+- The default, `auto`, follows Herdr's `[theme] name` when running inside Herdr. Elsewhere it uses
+  `terminal`.
+- `terminal` keeps the terminal's own colours and background. Every other theme paints its own.
+- `t` opens a picker that previews the highlighted theme. Enter keeps it, and the choice is
+  remembered over `[ui] theme`. Esc restores the previous theme.
+- Under a named theme, the selection and scrollbar colours come from the theme, unless `[colors]`
+  sets `selection` or `selection_accent` to something other than the default.
 
 `show_tool_calls`, `show_tool_results`, `show_reasoning` and `show_system_messages` are accepted
 under `[ui]` only as `false`, because technical events are never displayed.

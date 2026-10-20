@@ -30,13 +30,23 @@ class _Section(BaseModel):
 
 
 class UIConfig(_Section):
-    theme: str = "dark"
+    # auto: Herdr's theme inside Herdr, otherwise "terminal" (the terminal's own colours).
+    theme: str = "auto"
     date_format: str = "%Y-%m-%d %H:%M"
     # Accepted so the documented example validates; technical events are never displayed.
     show_tool_calls: Literal[False] = False
     show_tool_results: Literal[False] = False
     show_reasoning: Literal[False] = False
     show_system_messages: Literal[False] = False
+
+    @field_validator("theme")
+    @classmethod
+    def _theme(cls, value: str) -> str:
+        from human_history.tui.themes import THEMES  # textual themes; imported only when validating
+
+        if value != "auto" and value not in THEMES:
+            raise ValueError(f"unknown theme {value!r}; one of: auto, {', '.join(THEMES)}")
+        return value
 
 
 class ColorsConfig(_Section):
@@ -133,6 +143,7 @@ KEY_ACTIONS = {
     "choose_project": "o",
     "cycle_agent": "a",
     "cycle_sort": "s",
+    "choose_theme": "t",
     "resume": "r",
     "favorite": "f",
     "info": "i",

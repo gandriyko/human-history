@@ -204,6 +204,10 @@ ModalScreen {
     text-overflow: ellipsis;
 }
 
+.dialog.theme {
+    width: 36;
+}
+
 .dialog.help {
     width: 90;
     max-height: 90%;

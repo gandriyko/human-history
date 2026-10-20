@@ -37,15 +37,12 @@ def test_escape_twice_on_home_quits(config, db, tmp_path, monkeypatch):
         app = HistoryApp(config, str(tmp_path), project_filter="all")
         async with app.run_test(size=(100, 30)) as pilot:
             await pilot.pause(0.2)
-            # Esc steps back first: out of the conversation, and a non-empty search is not lost.
+            # Esc steps back first: out of the conversation, then clears the search (neither arms quitting).
             await pilot.press("enter")
             await pilot.pause(0.3)
-            await pilot.press("escape", "escape")  # conversation -> home, then search -> list (arms)
+            await pilot.press("escape", *"zz", "escape")  # conversation -> home, then clears "zz"
             assert app.is_running and app.query_one("#home").display
-            app._last_escape = 0  # a pause
-            await pilot.press("slash", *"zz", "escape", "escape")  # search -> list, list -> clears search
-            assert app.is_running and app.query_one("#search").value == ""
-            app._last_escape = 0
+            assert app.query_one("#search").value == ""
             await pilot.press("escape")  # empty search: first press only warns
             assert app.is_running
             await pilot.press("escape")  # second within 1.5 s quits

@@ -18,7 +18,7 @@ from textual.containers import Horizontal, Vertical
 from textual.timer import Timer
 from textual.widgets import Footer, Input, OptionList, Select, Static
 
-from human_history.config import Config
+from human_history.config import ColorsConfig, Config
 from human_history.integrations import herdr
 from human_history.integrations.resume import (
     ResumeError,
@@ -32,7 +32,8 @@ from human_history.storage import search as store
 from human_history.storage.database import connect, get_kv, set_kv
 from human_history.storage.indexer import index_all
 from human_history.tui.layout import latin_key
-from human_history.tui.screens import ConfirmScreen, HelpScreen, InfoScreen, ResumeDirectoryScreen
+from human_history.tui.screens import ConfirmScreen, HelpScreen, InfoScreen, ResumeDirectoryScreen, ThemeScreen
+from human_history.tui.themes import TERMINAL, THEMES, resolve
 from human_history.tui.widgets import (
     AGENT_LABEL,
     Conversation,
@@ -90,6 +91,7 @@ class HistoryApp(App[ResumePlan | None]):
         Binding("o", "choose_project", "Project", id="choose_project"),
         Binding("a", "cycle_agent", "Agent", show=False, id="cycle_agent"),
         Binding("s", "cycle_sort", "Sort", show=False, id="cycle_sort"),
+        Binding("t", "choose_theme", "Theme", show=False, id="choose_theme"),
         Binding("r", "resume", "Resume", id="resume"),
         Binding("f", "favorite", "Fav", id="favorite"),
         Binding("i", "info", "Info", id="info"),
@@ -145,7 +147,7 @@ class HistoryApp(App[ResumePlan | None]):
     def compose(self) -> ComposeResult:
         with Vertical(id="home"):
             yield SearchInput(
-                placeholder="Search…  ↑↓ select · Enter open · Esc to list (r resume, q quit)",
+                placeholder="Search…  ↑↓ select · Enter open · Esc clear / to list (r resume, q quit)",
                 id="search",
                 compact=True,
             )
@@ -170,12 +172,21 @@ class HistoryApp(App[ResumePlan | None]):
         yield Footer()
 
     def get_css_variables(self) -> dict[str, str]:
-        """Theme variables plus the configurable selection colours used in app.tcss."""
+        """Theme variables plus the selection colours used in app.tcss: from [colors], or, under a
+        named theme, tinted from its primary colour unless [colors] sets them explicitly."""
         colors = self.config.colors
-        accent = Color.parse(colors.selection_accent)
+        selection, accent = Color.parse(colors.selection), Color.parse(colors.selection_accent)
+        theme = THEMES.get(getattr(self, "_theme_name", TERMINAL))
+        if theme and theme.name != TERMINAL:
+            primary, background = Color.parse(theme.primary), Color.parse(theme.background or "#000000")
+            # A value equal to the default (e.g. from `hh config --init`) still follows the theme.
+            if colors.selection == ColorsConfig().selection:
+                selection = background.blend(primary, 0.35)
+            if colors.selection_accent == ColorsConfig().selection_accent:
+                accent = primary
         return {
             **super().get_css_variables(),
-            "selection": Color.parse(colors.selection).hex,
+            "selection": selection.hex,
             "selection-accent": accent.hex,
             "selection-accent-bright": accent.lighten(0.1).hex,
         }
@@ -187,10 +198,9 @@ class HistoryApp(App[ResumePlan | None]):
         await super().on_event(event)
 
     def on_mount(self) -> None:
-        self.theme = {"dark": "textual-dark", "light": "textual-light"}.get(self.config.ui.theme, self.config.ui.theme)
-        if self.config.ui.theme not in ("dark", "light") and self.config.ui.theme not in self.available_themes:
-            self.notify(f"Unknown theme {self.config.ui.theme!r}; using textual-dark", severity="warning")
-            self.theme = "textual-dark"
+        for theme in THEMES.values():
+            self.register_theme(theme)
+        self.apply_theme(get_kv(self.db, "theme") or self.config.ui.theme)
         self.set_keymap(self.config.keymap())
         # SIGTERM (VS Code "Stop", kill) / SIGHUP (terminal closed) would otherwise kill the process
         # before Textual switches mouse tracking off, leaving the shell flooded with mouse reports.
@@ -405,8 +415,12 @@ class HistoryApp(App[ResumePlan | None]):
         # While a dialog is open only it reacts to keys (App bindings would otherwise still fire).
         if len(self.screen_stack) > 1:
             return action in ("quit", "ctrl_c", "command_palette")
+        reading = self.screen.has_class("-reading")
+        # "/" only searches inside a conversation: on the list the search box is always live.
+        if action == "focus_search":
+            return reading
         # Session-list search controls do nothing useful while reading; let inputs keep e.g. Ctrl+U.
-        return not (self.screen.has_class("-reading") and action in self.LIST_ONLY_ACTIONS)
+        return not (reading and action in self.LIST_ONLY_ACTIONS)
 
     def action_ctrl_c(self) -> None:
         """Ctrl+C twice (within 1.5 s) quits; a single press still copies any selected text."""
@@ -422,22 +436,18 @@ class HistoryApp(App[ResumePlan | None]):
         self.notify("Press Ctrl+C again to quit", timeout=1.5)
 
     def action_focus_search(self) -> None:
-        if self.screen.has_class("-reading"):
-            # vim-style "/" inside the open conversation
-            conv = self.query_one(Conversation)
-            self._find_saved = conv.save_search()
-            self._find_origin = conv.cursor_index()
-            find = self.query_one("#find", Input)
-            find.value = ""
-            self.screen.add_class("-finding")
-            find.focus()
-            return
-        self.query_one("#search", Input).focus()
+        """vim-style "/" inside the open conversation."""
+        conv = self.query_one(Conversation)
+        self._find_saved = conv.save_search()
+        self._find_origin = conv.cursor_index()
+        find = self.query_one("#find", Input)
+        find.value = ""
+        self.screen.add_class("-finding")
+        find.focus()
 
     def action_back(self) -> None:
-        """Esc: cancel in-session find → leave the conversation → search box ⇄ list (2nd Esc clears).
-
-        On the home page with an empty search, a second Esc within 1.5 s quits.
+        """Esc: cancel in-session find → leave the conversation → clear the search at once →
+        search box ⇄ list. On the home page with an empty search, a second Esc within 1.5 s quits.
         """
         search = self.query_one("#search", Input)
         if self.focused is self.query_one("#find", Input):
@@ -452,14 +462,17 @@ class HistoryApp(App[ResumePlan | None]):
             if not search.value and now - self._last_escape < 1.5:
                 self.exit()
                 return
-            if self.focused is search:
-                self.query_one(SessionList).focus()  # keeps the results; single-key actions (r, f, q…) work
-            else:
+            if search.value:  # the whole query at once; quitting needs Esc on an already empty search
                 search.value = ""
                 search.focus()
-            if not search.value:
-                self._last_escape = now
-                self.notify("Press Esc again to quit", timeout=1.5)
+                self._last_escape = 0
+                return
+            if self.focused is search:
+                self.query_one(SessionList).focus()  # single-key actions (r, f, q…) work there
+            else:
+                search.focus()
+            self._last_escape = now
+            self.notify("Press Esc again to quit", timeout=1.5)
 
     def action_cycle_scope(self) -> None:
         self.action_scope(SCOPES[(SCOPES.index(self.scope) + 1) % len(SCOPES)])
@@ -489,6 +502,23 @@ class HistoryApp(App[ResumePlan | None]):
         self.sort = SORTS[(SORTS.index(self.sort) + 1) % len(SORTS)]
         set_kv(self.db, "sort", self.sort)
         self.reload()
+
+    def apply_theme(self, choice: str) -> None:
+        """``choice`` is a theme name or ``auto``; ``terminal`` keeps the terminal's colours."""
+        self._theme_name = resolve(choice)
+        self.ansi_color = self._theme_name == TERMINAL
+        self.theme = self._theme_name
+        self.refresh_css()
+
+    def action_choose_theme(self) -> None:
+        current = get_kv(self.db, "theme") or self.config.ui.theme
+
+        def chosen(choice: str | None) -> None:
+            if choice:
+                set_kv(self.db, "theme", choice)
+            self.apply_theme(choice or current)  # Esc undoes the preview
+
+        self.push_screen(ThemeScreen(current, self.apply_theme), chosen)
 
     def action_favorite(self) -> None:
         row = self.query_one(SessionList).current()

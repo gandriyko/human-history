@@ -8,7 +8,10 @@
 # defaults. Unknown keys and invalid values are reported with their exact location.
 
 [ui]
-theme = "dark"                    # dark | light | any Textual theme: nord, gruvbox, tokyo-night, …
+# auto (Herdr's theme inside Herdr, else terminal) | terminal | catppuccin | catppuccin-latte |
+# tokyo-night | tokyo-night-day | dracula | nord | gruvbox | gruvbox-light | one-dark | one-light |
+# solarized | solarized-light. `t` picks one at runtime (remembered).
+theme = "auto"
 date_format = "%Y-%m-%d %H:%M"    # message timestamps and the info popup (the list shows ages)
 
 [colors]
@@ -65,6 +68,7 @@ cycle_project_filter = "p"
 choose_project = "o"
 cycle_agent = "a"
 cycle_sort = "s"
+choose_theme = "t"
 resume = "r"
 favorite = "f"
 info = "i"

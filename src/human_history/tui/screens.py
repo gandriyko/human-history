@@ -1,8 +1,9 @@
-"""Modal dialogs: resume directory choice, confirmation, session info, keyboard help."""
+"""Modal dialogs: resume directory choice, confirmation, session info, theme, keyboard help."""
 
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 
 from rich.table import Table
 from rich.text import Text
@@ -14,7 +15,36 @@ from textual.widgets import OptionList, Static
 from textual.widgets.option_list import Option
 
 from human_history.storage.search import SessionRow
+from human_history.tui.themes import THEMES, resolve
 from human_history.tui.widgets import InfoPanel
+
+
+class ThemeScreen(ModalScreen[str | None]):
+    """Pick a theme; the highlighted one is previewed live. Result: the choice, or None on Esc."""
+
+    BINDINGS = [Binding("escape,q", "dismiss(None)", "Cancel")]
+
+    def __init__(self, current: str, preview: Callable[[str], None]) -> None:
+        super().__init__()
+        self.current, self.preview = current, preview
+
+    def compose(self) -> ComposeResult:
+        names = ["auto", *THEMES]
+        options = [Option(f"{name} ✓" if name == self.current else name, id=name) for name in names]
+        options[0] = Option(f"auto ({resolve('auto')})" + (" ✓" if self.current == "auto" else ""), id="auto")
+        with Vertical(classes="dialog compact theme"):
+            yield Static(Text("Theme", style="bold"))
+            yield OptionList(*options)
+
+    def on_mount(self) -> None:
+        options = self.query_one(OptionList)
+        options.highlighted = options.get_option_index(self.current) if self.current in THEMES else 0
+
+    def on_option_list_option_highlighted(self, event: OptionList.OptionHighlighted) -> None:
+        self.preview(event.option.id or "auto")
+
+    def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
+        self.dismiss(event.option.id)
 
 
 class InfoScreen(ModalScreen[None]):
@@ -131,7 +161,7 @@ HELP = [
     (
         "Search",
         [
-            ("{focus_search}", "List: search sessions · Conversation: vim-style search in it"),
+            ("{focus_search}", "Vim-style search inside the open conversation"),
             ("{cycle_scope}", "Cycle scope: prompts → answers → both → titles"),
             ("{scope_user}", "Search my prompts only"),
             ("{scope_assistant}", "Search agent answers only"),
@@ -140,6 +170,7 @@ HELP = [
             ("{choose_project}", "Choose the project (dropdown)"),
             ("{cycle_agent}", "All agents → Claude → Codex → OpenCode → Copilot → Pi"),
             ("{cycle_sort}", "Sort: last activity / created / title"),
+            ("{choose_theme}", "Theme (previewed while moving; remembered)"),
             ("{next_match} / {prev_match}", "Next / previous matching message"),
             ("agent: branch: since: until: cwd:", "Filters inside the search box"),
         ],
