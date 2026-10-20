@@ -1,0 +1,211 @@
+/* $selection / $selection-accent / $selection-accent-bright come from [colors] in config.toml
+   (HistoryApp.get_css_variables). */
+
+Screen {
+    layout: vertical;
+    align-horizontal: center;
+}
+
+/* Home: search, header (count + filter dropdowns) and the session list, centered. */
+#home {
+    width: 100%;
+    max-width: 140;
+    height: 1fr;
+    padding: 1 2 0 2;
+}
+
+#search {
+    width: 100%;
+    margin-bottom: 1;
+}
+
+#header {
+    height: 1;
+    margin-bottom: 1;
+}
+
+#count {
+    width: auto;
+    min-width: 12;
+    color: $text-muted;
+    padding-left: 1;
+}
+
+#header Select {
+    margin-left: 2;
+}
+
+#header SelectCurrent {
+    color: $text-muted;
+    background: transparent;
+}
+
+#scope {
+    width: 19;
+}
+
+#agent {
+    width: 14;
+}
+
+#filter {
+    width: 16;
+}
+
+#project {
+    width: 1fr;
+    max-width: 34;
+}
+
+/* One view at a time: the home list, or (-reading) the open conversation. */
+#sessions {
+    height: 1fr;
+    border: none;
+    padding: 0;
+    background: transparent;
+    text-wrap: nowrap;
+    text-overflow: ellipsis;
+    scrollbar-size-vertical: 0;  /* no visible scrollbar; arrows, PgUp/PgDn and the wheel still scroll */
+}
+
+#sessions > .option-list--option {
+    padding: 0 1;
+}
+
+/* The cursor row must stand out even while focus sits in the search box (Textual dims it otherwise). */
+#sessions > .option-list--option-highlighted,
+.dialog OptionList > .option-list--option-highlighted,
+SelectOverlay > .option-list--option-highlighted {
+    background: $selection;
+    text-style: bold;
+}
+
+#conversation,
+#session-title,
+#findbar {
+    display: none;
+}
+
+#conversation {
+    height: 1fr;
+    padding: 0 2;
+    scrollbar-size-vertical: 1;
+    scrollbar-color: $selection-accent;
+    scrollbar-color-hover: $selection-accent-bright;
+    scrollbar-color-active: $selection-accent-bright;
+    scrollbar-background: $selection;
+    scrollbar-background-hover: $selection;
+    scrollbar-background-active: $selection;
+}
+
+#session-title {
+    height: 1;
+    padding: 0 1;
+    color: $accent;
+    text-style: bold;
+    text-wrap: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* The terminal's own background everywhere (App runs with ansi_color); only the selected row is
+   tinted, and the focused message gets a bar on its left. */
+Footer,
+Footer > FooterKey {
+    background: transparent;
+}
+
+.-reading #home {
+    display: none;
+}
+
+.-reading #conversation,
+.-reading #session-title,
+.-reading.-finding #findbar {
+    display: block;
+}
+
+#findbar {
+    height: 1;
+}
+
+#find-prompt {
+    width: 2;
+    padding-left: 1;
+    text-style: bold;
+}
+
+#find {
+    border: none;
+    height: 1;
+    width: 1fr;
+    padding: 0;
+}
+
+.message {
+    height: auto;
+    padding: 0 1;
+    margin: 0;
+    border-left: blank;  /* reserves the column used by the focus / mark bar, so text never shifts */
+}
+
+.message.first {
+    margin-top: 1;
+}
+
+.message.user.first {
+    border-top: hkey $panel;
+    padding-top: 1;
+}
+
+.message:focus {
+    border-left: thick $selection-accent;
+}
+
+.message.marked {
+    border-left: thick $warning;
+}
+
+.empty {
+    color: $text-muted;
+    padding: 2;
+}
+
+ModalScreen {
+    align: center middle;
+}
+
+.dialog {
+    width: 80;
+    max-width: 95%;
+    height: auto;
+    padding: 1 2;
+    background: $surface;
+    border: round $accent;
+}
+
+.dialog > Static {
+    margin-bottom: 1;
+}
+
+.dialog.compact {
+    padding: 0 1;
+}
+
+.dialog.compact > Static {
+    margin: 0;
+}
+
+.dialog.compact > OptionList {
+    height: auto;
+    border: none;
+    padding: 0;
+    margin: 1 0;
+    text-wrap: nowrap;
+    text-overflow: ellipsis;
+}
+
+.dialog.help {
+    width: 90;
+    max-height: 90%;
+    overflow-y: auto;
+}

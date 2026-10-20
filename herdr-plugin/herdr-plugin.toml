@@ -1,0 +1,53 @@
+# human-history as a Herdr plugin: humanized Claude Code / Codex session history.
+#
+# Install (local checkout):   herdr plugin link /path/to/agent-history/herdr-plugin
+# Bind a key in ~/.config/herdr/config.toml, then `herdr server reload-config`:
+#
+#   [[keys.command]]
+#   key = "f3"
+#   type = "plugin_action"
+#   command = "human-history.recent-here"
+#   description = "Humanized AI Session History"
+id = "human-history"
+name = "Human History"
+version = "0.1.0"
+min_herdr_version = "0.9.0"
+platforms = ["macos", "linux"]
+description = "Read, search and resume Claude Code / Codex sessions as clean conversations."
+
+# The browser pane. Pane commands resolve against the pane's cwd, hence the absolute launcher path.
+# Placement is chosen by the action ([herdr] history_placement in human-history's config).
+[[panes]]
+id = "browser"
+title = "human-history"
+placement = "overlay"
+command = ["sh", "-c", "exec \"$HERDR_PLUGIN_ROOT/hh.sh\" tui"]
+
+[[actions]]
+id = "open"
+title = "human-history: open"
+contexts = ["pane", "workspace"]
+command = ["sh", "hh.sh", "herdr-action", "open"]
+
+[[actions]]
+id = "recent-here"
+title = "human-history: recent sessions in this worktree"
+contexts = ["pane", "workspace"]
+command = ["sh", "hh.sh", "herdr-action", "recent-here"]
+
+[[actions]]
+id = "search"
+title = "human-history: search"
+contexts = ["pane", "workspace"]
+command = ["sh", "hh.sh", "herdr-action", "search"]
+
+[[actions]]
+id = "resume-last"
+title = "human-history: resume last session here"
+contexts = ["pane", "workspace"]
+command = ["sh", "hh.sh", "herdr-action", "resume-last"]
+
+[[actions]]
+id = "refresh-index"
+title = "human-history: refresh index"
+command = ["sh", "hh.sh", "herdr-action", "refresh-index"]

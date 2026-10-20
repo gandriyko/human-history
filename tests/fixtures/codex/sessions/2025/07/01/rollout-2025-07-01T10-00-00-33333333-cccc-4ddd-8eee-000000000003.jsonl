@@ -1,0 +1,9 @@
+{"id":"33333333-cccc-4ddd-8eee-000000000003","timestamp":"2025-07-01T10:00:00.000Z","instructions":null,"git":{"branch":"legacy"}}
+{"record_type":"state"}
+{"type":"message","role":"user","content":[{"type":"input_text","text":"<user_instructions>SYSTEMSECRET</user_instructions>"}]}
+{"type":"message","role":"user","content":[{"type":"input_text","text":"<environment_context>\n<cwd>/work/old</cwd>\n</environment_context>"}]}
+{"type":"message","role":"user","content":[{"type":"input_text","text":"Rename the legacy module"}]}
+{"type":"reasoning","summary":[{"type":"summary_text","text":"REASONINGSECRET"}]}
+{"type":"function_call","name":"shell","arguments":"TOOLSECRET","call_id":"c1"}
+{"type":"function_call_output","call_id":"c1","output":"TOOLSECRET"}
+{"type":"message","role":"assistant","content":[{"type":"output_text","text":"Renamed it."}]}

@@ -1,0 +1,101 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "TUI: current worktree",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "human_history.cli",
+      "args": ["tui"],
+      "cwd": "${workspaceFolder}",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      // Textual needs a real terminal; the Debug Console cannot render it.
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "TUI: all projects",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "human_history.cli",
+      "args": ["tui", "--filter", "all"],
+      "cwd": "${workspaceFolder}",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "TUI: as if launched in another directory",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "human_history.cli",
+      "args": ["tui"],
+      "env": { "HH_CWD": "${input:cwd}" },
+      "cwd": "${workspaceFolder}",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "CLI: index",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "human_history.cli",
+      "args": ["index"],
+      "cwd": "${workspaceFolder}",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "CLI: search",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "human_history.cli",
+      "args": ["search", "${input:query}", "--scope", "${input:scope}", "--filter", "all"],
+      "cwd": "${workspaceFolder}",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "CLI: show session",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "human_history.cli",
+      "args": ["show", "${input:sessionId}"],
+      "cwd": "${workspaceFolder}",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "pytest: all",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["-q"],
+      "cwd": "${workspaceFolder}",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "pytest: current file",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["-q", "${file}"],
+      "cwd": "${workspaceFolder}",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    }
+  ],
+  "inputs": [
+    { "id": "cwd", "type": "promptString", "description": "Directory to treat as current", "default": "${workspaceFolder}" },
+    { "id": "query", "type": "promptString", "description": "Search text" },
+    {
+      "id": "scope",
+      "type": "pickString",
+      "description": "Search scope",
+      "options": ["both", "user", "assistant", "title"],
+      "default": "both"
+    },
+    { "id": "sessionId", "type": "promptString", "description": "Session id (or unique prefix)" }
+  ]
+}

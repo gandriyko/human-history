@@ -1,0 +1,71 @@
+# human-history configuration
+#
+# Location: ~/.config/human-history/config.toml   (or the path in $HUMAN_HISTORY_CONFIG)
+# Create it with:  hh config --init
+# Check it with:   hh config
+#
+# Every key is optional: delete anything you do not want to change. The values below are the
+# defaults. Unknown keys and invalid values are reported with their exact location.
+
+[ui]
+theme = "dark"                    # dark | light | any Textual theme: nord, gruvbox, tokyo-night, …
+date_format = "%Y-%m-%d %H:%M"    # message timestamps and the info popup (the list shows ages)
+
+[colors]
+# Any CSS colour: "#rrggbb", "rgb(77, 42, 34)" or a name such as "teal".
+selection = "#4d2a22"             # selected row / option background
+selection_accent = "#d97757"      # conversation scrollbar thumb, focused-message bar
+project = "#e0a86e"               # project names in the session list
+claude = "#d97757"                # Claude dot and message header
+codex = "#10a37f"                 # Codex dot and message header
+match = "#665c00"                 # search matches (background)
+current_match = "#ff9e3b"         # the match n / N is on (background)
+
+[search]
+default_scope = "both"                       # user | assistant | both | title
+default_project_filter = "current-worktree"  # current-worktree | repository | all
+sort = "last_activity_desc"                  # last_activity_desc | created_desc | title_asc
+limit = 200                                  # sessions shown per list / search (10–5000)
+
+[resume]
+directory = "ask"                 # ask | current | original
+placement = "tab"                 # inside Herdr: tab | split-right | split-down
+close_history_on_resume = true    # inside Herdr: exit the browser after resuming
+
+[herdr]
+history_placement = "overlay"     # overlay | popup | zoomed | split | tab
+popup_size = "90%"                # popup width and height (cells or %)
+
+[index]
+auto_refresh = true
+refresh_interval_seconds = 30     # minimum 5
+# database = "~/.local/share/human-history/index.sqlite3"
+
+[paths]
+# Defaults honour $CLAUDE_CONFIG_DIR and $CODEX_HOME.
+claude = ["~/.claude/projects"]
+codex = ["~/.codex/sessions", "~/.codex/archived_sessions"]
+
+[keys]
+# action = "comma,separated,keys" (Textual key names). Unlisted actions keep their defaults.
+# Shortcuts also work on a Cyrillic (ЙЦУКЕН) layout without switching.
+focus_search = "slash"
+cycle_scope = "tab"
+scope_user = "ctrl+u"
+scope_assistant = "ctrl+a"
+scope_both = "ctrl+shift+a"
+cycle_project_filter = "p"
+choose_project = "o"
+cycle_agent = "a"
+cycle_sort = "s"
+resume = "r"
+favorite = "f"
+info = "i"
+next_match = "n"
+prev_match = "N"
+copy_message = "y"
+copy_conversation = "Y"
+mark_message = "space"
+refresh = "ctrl+r"
+help = "question_mark"
+quit = "q"

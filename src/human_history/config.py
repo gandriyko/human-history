@@ -1,0 +1,175 @@
+"""TOML configuration (``~/.config/human-history/config.toml``), validated strictly."""
+
+from __future__ import annotations
+
+import os
+import tomllib
+from pathlib import Path
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
+from textual.color import Color, ColorParseError
+
+
+def _xdg(var: str, default: str) -> Path:
+    return Path(os.environ.get(var) or Path.home() / default)
+
+
+CONFIG_PATH = _xdg("XDG_CONFIG_HOME", ".config") / "human-history" / "config.toml"
+EXAMPLE_PATH = Path(__file__).with_name("config.example.toml")  # every option, with defaults
+DATA_DIR = _xdg("XDG_DATA_HOME", ".local/share") / "human-history"
+
+Scope = Literal["user", "assistant", "both", "title"]
+ProjectFilter = Literal["current-worktree", "repository", "all"]
+Sort = Literal["last_activity_desc", "created_desc", "title_asc"]
+ResumeDirectory = Literal["ask", "current", "original"]
+
+
+class _Section(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class UIConfig(_Section):
+    theme: str = "dark"
+    date_format: str = "%Y-%m-%d %H:%M"
+    # Accepted so the documented example validates; technical events are never displayed.
+    show_tool_calls: Literal[False] = False
+    show_tool_results: Literal[False] = False
+    show_reasoning: Literal[False] = False
+    show_system_messages: Literal[False] = False
+
+
+class ColorsConfig(_Section):
+    """Any CSS colour: "#rrggbb", "rgb(…)", or a name such as "teal"."""
+
+    selection: str = "#4d2a22"  # selected row / option background
+    selection_accent: str = "#d97757"  # conversation scrollbar thumb, focused-message bar
+    project: str = "#e0a86e"  # project names in the session list
+    claude: str = "#d97757"  # agent dot and header
+    codex: str = "#10a37f"
+    match: str = "#665c00"  # search matches (background)
+    current_match: str = "#ff9e3b"  # the match n/N is on (background)
+
+    @field_validator("*")
+    @classmethod
+    def _color(cls, value: str) -> str:
+        try:
+            Color.parse(value)
+        except ColorParseError as exc:
+            raise ValueError(f"not a colour: {value!r}") from exc
+        return value
+
+
+class SearchConfig(_Section):
+    default_scope: Scope = "both"
+    default_project_filter: ProjectFilter = "current-worktree"
+    sort: Sort = "last_activity_desc"
+    limit: int = Field(200, ge=10, le=5000)
+
+
+class ResumeConfig(_Section):
+    directory: ResumeDirectory = "ask"
+    # Where Herdr opens the resumed agent.
+    placement: Literal["tab", "split-right", "split-down"] = "tab"
+    close_history_on_resume: bool = True
+
+
+class HerdrConfig(_Section):
+    # How plugin actions show the history browser.
+    history_placement: Literal["overlay", "popup", "zoomed", "split", "tab"] = "overlay"
+    popup_size: str = "90%"
+
+
+class IndexConfig(_Section):
+    auto_refresh: bool = True
+    refresh_interval_seconds: int = Field(30, ge=5)
+    database: str | None = None
+
+    def database_path(self) -> Path:
+        return Path(self.database).expanduser() if self.database else DATA_DIR / "index.sqlite3"
+
+
+def _claude_default() -> list[str]:
+    return [str(Path(os.environ.get("CLAUDE_CONFIG_DIR", "~/.claude")) / "projects")]
+
+
+def _codex_default() -> list[str]:
+    home = Path(os.environ.get("CODEX_HOME", "~/.codex"))
+    return [str(home / "sessions"), str(home / "archived_sessions")]
+
+
+class PathsConfig(_Section):
+    claude: list[str] = Field(default_factory=_claude_default)
+    codex: list[str] = Field(default_factory=_codex_default)
+
+
+# Action id -> comma-separated Textual key names. Unlisted actions keep their defaults.
+KEY_ACTIONS = {
+    "focus_search": "slash",
+    "cycle_scope": "tab",
+    "scope_user": "ctrl+u",
+    "scope_assistant": "ctrl+a",
+    "scope_both": "ctrl+shift+a",
+    "cycle_project_filter": "p",
+    "choose_project": "o",
+    "cycle_agent": "a",
+    "cycle_sort": "s",
+    "resume": "r",
+    "favorite": "f",
+    "info": "i",
+    "next_match": "n",
+    "prev_match": "N",
+    "copy_message": "y",
+    "copy_conversation": "Y",
+    "mark_message": "space",
+    "refresh": "ctrl+r",
+    "help": "question_mark",
+    "quit": "q",
+}
+
+
+class Config(_Section):
+    ui: UIConfig = Field(default_factory=UIConfig)
+    colors: ColorsConfig = Field(default_factory=ColorsConfig)
+    search: SearchConfig = Field(default_factory=SearchConfig)
+    resume: ResumeConfig = Field(default_factory=ResumeConfig)
+    index: IndexConfig = Field(default_factory=IndexConfig)
+    herdr: HerdrConfig = Field(default_factory=HerdrConfig)
+    paths: PathsConfig = Field(default_factory=PathsConfig)
+    keys: dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("keys")
+    @classmethod
+    def _known_keys(cls, value: dict[str, str]) -> dict[str, str]:
+        unknown = sorted(set(value) - set(KEY_ACTIONS))
+        if unknown:
+            raise ValueError(f"unknown key action(s) {unknown}; valid: {sorted(KEY_ACTIONS)}")
+        return value
+
+    def keymap(self) -> dict[str, str]:
+        return {**KEY_ACTIONS, **self.keys}
+
+
+class ConfigError(Exception):
+    pass
+
+
+def config_path() -> Path:
+    return Path(os.environ.get("HUMAN_HISTORY_CONFIG") or CONFIG_PATH).expanduser()
+
+
+def load_config(path: Path | None = None) -> Config:
+    path = path or config_path()
+    if not path.exists():
+        return Config()
+    try:
+        data = tomllib.loads(path.read_text(encoding="utf-8"))
+        return Config.model_validate(data)
+    except tomllib.TOMLDecodeError as exc:
+        raise ConfigError(f"{path}: invalid TOML: {exc}") from exc
+    except ValidationError as exc:
+        lines = [f"{path}: invalid configuration"]
+        for err in exc.errors():
+            where = ".".join(str(p) for p in err["loc"])
+            lines.append(f"  {where}: {err['msg']}")
+        raise ConfigError("\n".join(lines)) from exc

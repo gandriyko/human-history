@@ -1,0 +1,23 @@
+{"timestamp":"2026-10-02T08:00:00.100Z","type":"session_meta","payload":{"id":"22222222-bbbb-4ccc-8ddd-000000000002","timestamp":"2026-10-02T08:00:00.000Z","cwd":"/work/svc","originator":"codex_cli_rs","cli_version":"0.107.0","base_instructions":{"text":"SYSTEMSECRET base instructions"},"git":{"commit_hash":"abc","branch":"main","repository_url":"git@example.com:org/svc.git"}}}
+{"timestamp":"2026-10-02T08:00:00.200Z","type":"response_item","payload":{"type":"message","role":"developer","content":[{"type":"input_text","text":"<permissions instructions>SYSTEMSECRET"}]}}
+{"timestamp":"2026-10-02T08:00:00.300Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"# AGENTS.md instructions for /work/svc\n\n<INSTRUCTIONS>SYSTEMSECRET</INSTRUCTIONS>"},{"type":"input_text","text":"<environment_context>\n  <cwd>/work/svc</cwd>\n</environment_context>"}]}}
+{"timestamp":"2026-10-02T08:00:00.400Z","type":"event_msg","payload":{"type":"task_started","turn_id":"t1"}}
+{"timestamp":"2026-10-02T08:00:00.450Z","type":"turn_context","payload":{"turn_id":"t1","cwd":"/work/svc","model":"gpt","user_instructions":"SYSTEMSECRET"}}
+{"timestamp":"2026-10-02T08:00:01.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"# Context from my IDE setup:\n\n## Active file: svc/approval.py\n\n## My request for Codex:\nExplain the approval workflow"}]}}
+{"timestamp":"2026-10-02T08:00:01.010Z","type":"event_msg","payload":{"type":"user_message","message":"# Context from my IDE setup:\n\n## Active file: svc/approval.py\n\n## My request for Codex:\nExplain the approval workflow","images":[]}}
+{"timestamp":"2026-10-02T08:00:02.000Z","type":"response_item","payload":{"type":"reasoning","summary":[{"type":"summary_text","text":"REASONINGSECRET"}],"encrypted_content":"xyz"}}
+{"timestamp":"2026-10-02T08:00:02.100Z","type":"event_msg","payload":{"type":"agent_reasoning","text":"REASONINGSECRET"}}
+{"timestamp":"2026-10-02T08:00:03.000Z","type":"event_msg","payload":{"type":"agent_message","message":"Let me read the service first.","phase":"commentary"}}
+{"timestamp":"2026-10-02T08:00:03.010Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"Let me read the service first."}],"phase":"commentary"}}
+{"timestamp":"2026-10-02T08:00:04.000Z","type":"response_item","payload":{"type":"function_call","name":"exec_command","arguments":"{\"cmd\":\"cat TOOLSECRET\"}","call_id":"call_1"}}
+{"timestamp":"2026-10-02T08:00:05.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"call_1","output":"TOOLSECRET contents"}}
+{"timestamp":"2026-10-02T08:00:05.500Z","type":"response_item","payload":{"type":"custom_tool_call","name":"apply_patch","input":"TOOLSECRET"}}
+{"timestamp":"2026-10-02T08:00:06.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total":1}}}
+{"timestamp":"2026-10-02T08:00:07.000Z","type":"event_msg","payload":{"type":"agent_message","message":"The approval workflow has three levels.","phase":"final_answer"}}
+{"timestamp":"2026-10-02T08:00:07.010Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"The approval workflow has three levels."}],"phase":"final_answer"}}
+{"timestamp":"2026-10-02T08:00:07.100Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t1","last_agent_message":"The approval workflow has three levels."}}
+{bad json
+{"timestamp":"2026-10-02T08:01:00.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"<turn_aborted>SYSTEMSECRET</turn_aborted>"}]}}
+{"timestamp":"2026-10-02T08:02:00.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Add an index on approval_level"}]}}
+{"timestamp":"2026-10-02T08:02:00.010Z","type":"event_msg","payload":{"type":"user_message","message":"Add an index on approval_level","images":[]}}
+{"timestamp":"2026-10-02T08:02:05.000Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"Added a composite index."}]}}
