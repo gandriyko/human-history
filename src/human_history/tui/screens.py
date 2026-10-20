@@ -161,7 +161,7 @@ HELP = [
     (
         "Search",
         [
-            ("{focus_search}", "Vim-style search inside the open conversation"),
+            ("{focus_search}", "Search box on the list; vim-style search inside a conversation"),
             ("{cycle_scope}", "Cycle scope: prompts → answers → both → titles"),
             ("{scope_user}", "Search my prompts only"),
             ("{scope_assistant}", "Search agent answers only"),

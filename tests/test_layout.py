@@ -40,6 +40,7 @@ def test_shortcuts_work_on_cyrillic_layout(config, db, tmp_path, monkeypatch):
         async with app.run_test(size=(100, 30)) as pilot:
             await pilot.pause(0.2)
             search = app.query_one("#search")
+            await pilot.press("full_stop")  # "/" on the Cyrillic layout: into the search box
             await pilot.press("п", "р")  # typed into the search box as Cyrillic text
             assert search.value == "пр"
             await pilot.press("ctrl+г")  # Ctrl+U on the Cyrillic layout: scope = my prompts

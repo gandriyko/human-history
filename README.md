@@ -84,10 +84,10 @@ below:
 - project filter: this worktree / whole repository / all projects
 - the project those filters refer to: the current one, or any other project that has sessions
 
-At start the cursor is in the search box. `Enter` opens the selected conversation full-width, and
-`Esc` goes back.
+At start the cursor is in the session list; press `/` or click the search box to type a query.
+`Enter` opens the selected conversation full-width, and `Esc` goes back.
 
-**Search box** (focused at start, fzf-style)
+**Search box** (`/` or click, fzf-style)
 
 | Key | Action |
 |---|---|
@@ -104,7 +104,8 @@ At start the cursor is in the search box. `Enter` opens the selected conversatio
 |---|---|
 | `j` `k` `↑` `↓` | Move through sessions |
 | `Enter` | Open the conversation |
-| `Esc` | Back to the search box |
+| `/` | Go to the search box |
+| `Esc` | Clear the search; on an empty one, press twice to quit |
 | `p` | Project filter: worktree → repository → all (remembered) |
 | `o` | Choose a project (opens the dropdown) |
 | `a` | Agent: all → Claude → Codex → OpenCode → Copilot → Pi |

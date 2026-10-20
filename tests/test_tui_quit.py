@@ -40,7 +40,7 @@ def test_escape_twice_on_home_quits(config, db, tmp_path, monkeypatch):
             # Esc steps back first: out of the conversation, then clears the search (neither arms quitting).
             await pilot.press("enter")
             await pilot.pause(0.3)
-            await pilot.press("escape", *"zz", "escape")  # conversation -> home, then clears "zz"
+            await pilot.press("escape", "slash", *"zz", "escape")  # conversation -> list, clears "zz"
             assert app.is_running and app.query_one("#home").display
             assert app.query_one("#search").value == ""
             await pilot.press("escape")  # empty search: first press only warns

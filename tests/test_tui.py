@@ -30,9 +30,11 @@ def test_browse_read_and_search(config, db, tmp_path, monkeypatch):
             search = app.query_one("#search")
             home = app.query_one("#home")
             assert len(sessions.rows) == 3
-            # only the list is on screen, the search box has focus; nothing is rendered until Enter
+            # only the list is on screen and has focus; nothing is rendered until Enter
             assert home.display and not conv.display and not conv.views()
-            assert search.has_focus
+            assert sessions.has_focus
+            await pilot.press("slash")  # "/" activates the search box
+            assert search.has_focus and search.value == ""
 
             # arrows move the list while typing focus stays in the search box
             await pilot.press("down", "down")

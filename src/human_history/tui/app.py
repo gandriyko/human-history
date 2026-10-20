@@ -134,7 +134,7 @@ class HistoryApp(App[ResumePlan | None]):
         self.initial_query = query
         self.current_key: str | None = None
         # Where Esc from a conversation returns: the search box or the list, whichever opened it.
-        self._return_to: str = "#search"
+        self._return_to: str = "#sessions"
         self.scroll_memory: dict[str, float] = {}
         self._search_timer: Timer | None = None
         # In-conversation "/" search: where it started and what to restore on Esc.
@@ -212,7 +212,7 @@ class HistoryApp(App[ResumePlan | None]):
         search.value = self.initial_query
         self.refresh_projects()
         self.reload()
-        search.focus()
+        self.query_one(SessionList).focus()  # search starts inactive: "/" or a click enters it
         self.reindex()
         if self.config.index.auto_refresh:
             self.set_interval(self.config.index.refresh_interval_seconds, self.reindex)
@@ -416,9 +416,6 @@ class HistoryApp(App[ResumePlan | None]):
         if len(self.screen_stack) > 1:
             return action in ("quit", "ctrl_c", "command_palette")
         reading = self.screen.has_class("-reading")
-        # "/" only searches inside a conversation: on the list the search box is always live.
-        if action == "focus_search":
-            return reading
         # Session-list search controls do nothing useful while reading; let inputs keep e.g. Ctrl+U.
         return not (reading and action in self.LIST_ONLY_ACTIONS)
 
@@ -436,7 +433,10 @@ class HistoryApp(App[ResumePlan | None]):
         self.notify("Press Ctrl+C again to quit", timeout=1.5)
 
     def action_focus_search(self) -> None:
-        """vim-style "/" inside the open conversation."""
+        """"/": the search box on the list, vim-style find inside the open conversation."""
+        if not self.screen.has_class("-reading"):
+            self.query_one("#search", Input).focus()
+            return
         conv = self.query_one(Conversation)
         self._find_saved = conv.save_search()
         self._find_origin = conv.cursor_index()
@@ -447,7 +447,7 @@ class HistoryApp(App[ResumePlan | None]):
 
     def action_back(self) -> None:
         """Esc: cancel in-session find → leave the conversation → clear the search at once →
-        search box ⇄ list. On the home page with an empty search, a second Esc within 1.5 s quits.
+        search box → list. On the home page with an empty search, a second Esc within 1.5 s quits.
         """
         search = self.query_one("#search", Input)
         if self.focused is self.query_one("#find", Input):
@@ -467,10 +467,7 @@ class HistoryApp(App[ResumePlan | None]):
                 search.focus()
                 self._last_escape = 0
                 return
-            if self.focused is search:
-                self.query_one(SessionList).focus()  # single-key actions (r, f, q…) work there
-            else:
-                search.focus()
+            self.query_one(SessionList).focus()  # single-key actions (r, f, q…) work there
             self._last_escape = now
             self.notify("Press Esc again to quit", timeout=1.5)
 
