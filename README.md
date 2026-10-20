@@ -128,6 +128,7 @@ At start the cursor is in the search box. `Enter` opens the selected conversatio
 | `?` | Help |
 | `q` | Quit |
 | `Ctrl+C` twice | Quit from anywhere, including while typing. A single press copies the selected text |
+| `Esc` twice | Quit from the home page when the search is empty. Elsewhere `Esc` steps back first: out of the find bar, then the conversation, then clears the search |
 
 Shortcuts do not depend on the keyboard layout. On a Ukrainian or Russian ЙЦУКЕН layout:
 - A key acts like the Latin key in the same position, so `й` = `q`, `к` = `r`, `т` = `n` and

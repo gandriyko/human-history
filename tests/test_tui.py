@@ -65,6 +65,7 @@ def test_browse_read_and_search(config, db, tmp_path, monkeypatch):
             assert search.has_focus and search.value == ""
 
             # header: agent filter (a) and the project picker for worktree/repository filtering
+            app._last_escape = 0  # a pause: a quick second Esc on an empty search would quit
             await pilot.press("escape")  # to the list, where single-key actions work
             await pilot.press("a")
             assert {r.agent for r in sessions.rows} == {"claude"}

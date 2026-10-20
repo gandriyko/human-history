@@ -153,6 +153,7 @@ HELP = [
             ("{refresh}", "Re-index now"),
             ("{quit}", "Quit"),
             ("ctrl+c ctrl+c", "Quit from anywhere (also while typing)"),
+            ("esc esc", "Quit from the home page (empty search)"),
         ],
     ),
 ]

@@ -138,6 +138,7 @@ class HistoryApp(App[ResumePlan | None]):
         self._find_origin = 0
         self._find_saved: tuple = (None, -1)
         self._last_ctrl_c = 0.0
+        self._last_escape = 0.0
 
     # ---------------------------------------------------------------- layout
     def compose(self) -> ComposeResult:
@@ -433,20 +434,31 @@ class HistoryApp(App[ResumePlan | None]):
         self.query_one("#search", Input).focus()
 
     def action_back(self) -> None:
-        """Esc: cancel in-session find → leave the conversation → search box ⇄ list (2nd Esc clears)."""
+        """Esc: cancel in-session find → leave the conversation → search box ⇄ list (2nd Esc clears).
+
+        On the home page with an empty search, a second Esc within 1.5 s quits.
+        """
         search = self.query_one("#search", Input)
         if self.focused is self.query_one("#find", Input):
             self.cancel_find()
         elif self.screen.has_class("-reading") or isinstance(self.focused, MessageView):
             self.screen.remove_class("-reading")
             self.query_one(self._return_to).focus()
-        elif self.focused is search:
-            self.query_one(SessionList).focus()  # keeps the results; single-key actions (r, f, q…) work here
         elif isinstance(self.focused, Select):
             search.focus()
         else:
-            search.value = ""
-            search.focus()
+            now = time.monotonic()
+            if not search.value and now - self._last_escape < 1.5:
+                self.exit()
+                return
+            if self.focused is search:
+                self.query_one(SessionList).focus()  # keeps the results; single-key actions (r, f, q…) work
+            else:
+                search.value = ""
+                search.focus()
+            if not search.value:
+                self._last_escape = now
+                self.notify("Press Esc again to quit", timeout=1.5)
 
     def action_cycle_scope(self) -> None:
         self.action_scope(SCOPES[(SCOPES.index(self.scope) + 1) % len(SCOPES)])

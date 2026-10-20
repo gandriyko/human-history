@@ -27,3 +27,29 @@ def test_ctrl_c_twice_quits(config, db, tmp_path, monkeypatch):
             assert not app.is_running
 
     asyncio.run(scenario())
+
+
+def test_escape_twice_on_home_quits(config, db, tmp_path, monkeypatch):
+    monkeypatch.delenv("HERDR_ENV", raising=False)
+    index_all(db, config)
+
+    async def scenario():
+        app = HistoryApp(config, str(tmp_path), project_filter="all")
+        async with app.run_test(size=(100, 30)) as pilot:
+            await pilot.pause(0.2)
+            # Esc steps back first: out of the conversation, and a non-empty search is not lost.
+            await pilot.press("enter")
+            await pilot.pause(0.3)
+            await pilot.press("escape", "escape")  # conversation -> home, then search -> list (arms)
+            assert app.is_running and app.query_one("#home").display
+            app._last_escape = 0  # a pause
+            await pilot.press("slash", *"zz", "escape", "escape")  # search -> list, list -> clears search
+            assert app.is_running and app.query_one("#search").value == ""
+            app._last_escape = 0
+            await pilot.press("escape")  # empty search: first press only warns
+            assert app.is_running
+            await pilot.press("escape")  # second within 1.5 s quits
+            await pilot.pause(0.1)
+            assert not app.is_running
+
+    asyncio.run(scenario())
