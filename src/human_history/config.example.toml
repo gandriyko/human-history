@@ -18,6 +18,9 @@ selection_accent = "#d97757"      # conversation scrollbar thumb, focused-messag
 project = "#e0a86e"               # project names in the session list
 claude = "#d97757"                # Claude dot and message header
 codex = "#10a37f"                 # Codex dot and message header
+opencode = "#5fafff"
+copilot = "#a371f7"
+pi = "#56b6c2"
 match = "#665c00"                 # search matches (background)
 current_match = "#ff9e3b"         # the match n / N is on (background)
 
@@ -42,9 +45,13 @@ refresh_interval_seconds = 30     # minimum 5
 # database = "~/.local/share/human-history/index.sqlite3"
 
 [paths]
-# Defaults honour $CLAUDE_CONFIG_DIR and $CODEX_HOME.
+# Defaults honour $CLAUDE_CONFIG_DIR, $CODEX_HOME, $XDG_DATA_HOME / $OPENCODE_DB, $COPILOT_HOME,
+# $PI_CODING_AGENT_DIR and $PI_CODING_AGENT_SESSION_DIR.
 claude = ["~/.claude/projects"]
 codex = ["~/.codex/sessions", "~/.codex/archived_sessions"]
+opencode = ["~/.local/share/opencode"]  # the data dir (opencode*.db inside) or a database file
+copilot = ["~/.copilot/session-state"]
+pi = ["~/.pi/agent/sessions"]
 
 [keys]
 # action = "comma,separated,keys" (Textual key names). Unlisted actions keep their defaults.

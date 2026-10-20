@@ -47,6 +47,9 @@ class ColorsConfig(_Section):
     project: str = "#e0a86e"  # project names in the session list
     claude: str = "#d97757"  # agent dot and header
     codex: str = "#10a37f"
+    opencode: str = "#5fafff"
+    copilot: str = "#a371f7"
+    pi: str = "#56b6c2"
     match: str = "#665c00"  # search matches (background)
     current_match: str = "#ff9e3b"  # the match n/N is on (background)
 
@@ -98,9 +101,25 @@ def _codex_default() -> list[str]:
     return [str(home / "sessions"), str(home / "archived_sessions")]
 
 
+def _opencode_default() -> list[str]:
+    return [os.environ.get("OPENCODE_DB") or str(_xdg("XDG_DATA_HOME", ".local/share") / "opencode")]
+
+
+def _copilot_default() -> list[str]:
+    return [str(Path(os.environ.get("COPILOT_HOME", "~/.copilot")) / "session-state")]
+
+
+def _pi_default() -> list[str]:
+    sessions = Path(os.environ.get("PI_CODING_AGENT_DIR", "~/.pi/agent")) / "sessions"
+    return [str(sessions), *filter(None, [os.environ.get("PI_CODING_AGENT_SESSION_DIR")])]
+
+
 class PathsConfig(_Section):
     claude: list[str] = Field(default_factory=_claude_default)
     codex: list[str] = Field(default_factory=_codex_default)
+    opencode: list[str] = Field(default_factory=_opencode_default)  # the data dir, or opencode.db itself
+    copilot: list[str] = Field(default_factory=_copilot_default)
+    pi: list[str] = Field(default_factory=_pi_default)
 
 
 # Action id -> comma-separated Textual key names. Unlisted actions keep their defaults.

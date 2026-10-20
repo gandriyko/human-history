@@ -1,6 +1,7 @@
 # human-history
 
-Offline, keyboard-first history browser for **Claude Code** and **Codex CLI** sessions, built for
+Offline, keyboard-first history browser for **Claude Code**, **Codex CLI**, **OpenCode**,
+**GitHub Copilot CLI** and **pi** sessions, built for
 [Herdr](https://herdr.dev). It shows only the human conversation: your prompts and the agent's
 visible answers. Tool calls, tool results, reasoning, system/hook events and raw JSON are never
 displayed or indexed.
@@ -51,7 +52,7 @@ The browser opens as an overlay by default. Set `[herdr] history_placement` to `
 (`[resume] placement`) and the history pane exits, so no pane is left behind. If a pane is
 already running that session, Herdr focuses it instead of starting a duplicate:
 - Claude sessions are matched by Herdr's agent session id.
-- Codex sessions are matched by process argv.
+- Other agents' sessions are matched by process argv.
 
 The plugin launcher (`herdr-plugin/hh.sh`) looks for the CLI in this order:
 1. `$HUMAN_HISTORY_BIN`
@@ -94,7 +95,7 @@ At start the cursor is in the search box. `Enter` opens the selected conversatio
 | `/` or `Esc` | Back to the search box. `Esc` also clears the search text |
 | `p` | Project filter: worktree → repository → all (remembered) |
 | `o` | Choose a project (opens the dropdown) |
-| `a` | Agent: all → Claude → Codex |
+| `a` | Agent: all → Claude → Codex → OpenCode → Copilot → Pi |
 | `s` | Sort: recent / created / title (remembered) |
 
 **Conversation**
@@ -188,7 +189,7 @@ The complete file, with every option set to its default, is
 | `[resume]` | Directory policy (`ask` / `current` / `original`), Herdr placement, auto-close |
 | `[herdr]` | How the plugin opens the browser: overlay, popup, zoomed, split or tab |
 | `[index]` | Auto-refresh interval and database location |
-| `[paths]` | Where Claude Code and Codex logs are read from |
+| `[paths]` | Where each agent's logs are read from |
 | `[keys]` | Any shortcut (`action = "key,other-key"`, Textual key names) |
 
 ### Examples
@@ -271,9 +272,10 @@ favorites too.
 - Before anything is launched, the target directory must exist, the agent CLI must be on PATH, and
   the session id must match `[A-Za-z0-9._-]`.
 - Commands are argv lists. Inside Herdr the typed command line is built with `shlex.join`.
-- The commands are `claude --resume <id>` and `codex resume <id>`.
-- Claude Code finds sessions by project directory, so resuming a Claude session in another
-  directory may fail. The dialog says so.
+- The commands are `claude --resume <id>`, `codex resume <id>`, `opencode --session <id>`,
+  `copilot --resume=<id>` and `pi --session <id>`.
+- Claude Code, OpenCode and pi find sessions by project directory, so resuming one in another
+  directory may fail (pi offers to fork it). The dialog says so.
 - `hh resume-last` and `human-history.resume-last` always use the original directory.
 
 ## How the parsing works
@@ -299,6 +301,30 @@ favorites too.
 - The IDE wrapper (`## My request for Codex:`) is stripped.
 - Older rollouts without the `{"type","payload"}` wrapper are supported.
 - Titles come from `session_index.jsonl` (`thread_name`).
+
+**OpenCode** 1.2+ (`~/.local/share/opencode/opencode.db`, SQLite, opened read-only):
+- From the `session`, `message` and `part` tables only `text` parts are kept. User parts flagged
+  `synthetic` or `ignored` (attached file contents, reminders, auto-continue) are dropped, and so
+  are compaction summaries. `reasoning`, `tool`, `file`, `patch`, `step-*` and `subtask` parts are
+  ignored.
+- Child (subagent) sessions are skipped.
+- There is no byte offset: each run re-reads the sessions changed since the last one. An answer
+  still streaming is picked up once it completes.
+- The older JSON-file storage (OpenCode 1.1 and earlier) is not read.
+
+**GitHub Copilot CLI** (`~/.copilot/session-state/<id>/events.jsonl`):
+- `user.message.content` is the prompt (`transformedContent` carries injected reminders).
+  Instruction-discovery messages (`source` set) are dropped.
+- Only the `content` of `assistant.message` is kept. `toolRequests`, `reasoningText`, tool, hook,
+  skill and system events are ignored.
+- Titles come from `workspace.yaml` (`name`, or `summary` in older versions).
+- VS Code Copilot Chat is not indexed: it cannot be resumed from a terminal.
+
+**pi** (`~/.pi/agent/sessions/--<cwd>--/<timestamp>_<id>.jsonl`):
+- Only `user` text and the `text` blocks of `assistant` messages are kept. `thinking`,
+  `toolCall`, `toolResult`, `bashExecution`, custom and summary entries are dropped.
+- Expanded `/skill:` and `@file` blocks are stripped from the prompt.
+- All branches are shown in file order. The title is the latest `session_info` name.
 
 **Indexing**:
 - Each file's size, mtime, inode, first bytes and the byte offset of its last complete line are

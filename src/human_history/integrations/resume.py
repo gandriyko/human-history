@@ -12,7 +12,6 @@ from human_history.config import ResumeDirectory
 from human_history.storage.search import SessionRow
 
 _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
-CLI = {"claude": "claude", "codex": "codex"}
 
 
 class ResumeError(Exception):
@@ -35,6 +34,12 @@ def resume_argv(agent: str, session_id: str) -> list[str]:
         return ["claude", "--resume", session_id]
     if agent == "codex":
         return ["codex", "resume", session_id]
+    if agent == "opencode":
+        return ["opencode", "--session", session_id]
+    if agent == "copilot":
+        return ["copilot", f"--resume={session_id}"]  # the value is optional: `--resume <id>` may not bind
+    if agent == "pi":
+        return ["pi", "--session", session_id]
     raise ResumeError(f"resume is not supported for agent {agent!r}")
 
 
@@ -57,9 +62,8 @@ def build_plan(session: SessionRow, directory: str) -> ResumePlan:
     path = Path(directory).expanduser()
     if not path.is_dir():
         raise ResumeError(f"directory does not exist: {path}")
-    executable = shutil.which(CLI[session.agent])
-    if not executable:
-        raise ResumeError(f"{CLI[session.agent]!r} CLI is not installed (not found on PATH)")
+    if not shutil.which(argv[0]):
+        raise ResumeError(f"{argv[0]!r} CLI is not installed (not found on PATH)")
     return ResumePlan(session.agent, session.session_id, str(path.resolve()), tuple(argv), session.title)
 
 

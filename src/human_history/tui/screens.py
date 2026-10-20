@@ -68,8 +68,10 @@ class ResumeDirectoryScreen(ModalScreen[tuple[str, str | None] | None]):
                 Option(_choice("c", "Current", self.current), id="current"),
             )
             differs = self.session.cwd and os.path.realpath(self.session.cwd) != os.path.realpath(self.current)
-            if self.session.agent == "claude" and differs:
-                yield Static(Text("Claude finds sessions by project directory: Current may fail.", style="dim italic"))
+            if self.session.agent in ("claude", "opencode", "pi") and differs:
+                yield Static(
+                    Text("The agent finds sessions by project directory: Current may fail.", style="dim italic")
+                )
             yield Static(id="hint")
 
     def on_mount(self) -> None:
@@ -136,7 +138,7 @@ HELP = [
             ("{scope_both}", "Search prompts and answers"),
             ("{cycle_project_filter}", "Worktree → repository → all projects"),
             ("{choose_project}", "Choose the project (dropdown)"),
-            ("{cycle_agent}", "All agents → Claude → Codex"),
+            ("{cycle_agent}", "All agents → Claude → Codex → OpenCode → Copilot → Pi"),
             ("{cycle_sort}", "Sort: last activity / created / title"),
             ("{next_match} / {prev_match}", "Next / previous matching message"),
             ("agent: branch: since: until: cwd:", "Filters inside the search box"),

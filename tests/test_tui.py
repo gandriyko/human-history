@@ -72,7 +72,7 @@ def test_browse_read_and_search(config, db, tmp_path, monkeypatch):
             assert app.query_one("#agent", Select).value == "claude"
             await pilot.press("a")
             assert {r.agent for r in sessions.rows} == {"codex"} and len(sessions.rows) == 2
-            await pilot.press("a")  # back to all agents
+            await pilot.press("a", "a", "a", "a")  # opencode, copilot, pi, back to all agents
             assert len(sessions.rows) == 3
             app.query_one("#filter", Select).value = "current-worktree"
             app.query_one("#project", Select).value = "/work/svc"  # raises unless it is offered

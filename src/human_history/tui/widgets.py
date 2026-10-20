@@ -18,14 +18,16 @@ from textual.containers import VerticalScroll
 from textual.widgets import OptionList, Static
 from textual.widgets.option_list import Option
 
+from human_history.config import ColorsConfig
+from human_history.models import Agent
 from human_history.storage.search import HL_END, HL_START, SessionRow
 
-AGENT_LABEL = {"claude": "Claude", "codex": "Codex"}
+AGENT_LABEL = {"claude": "Claude", "codex": "Codex", "opencode": "OpenCode", "copilot": "Copilot", "pi": "Pi"}
 # Rich styles for rendered text; overridden from the [colors] config by apply_colors().
-AGENT_STYLE = {"claude": "bold #d97757", "codex": "bold #10a37f"}
+AGENT_DOT = {agent: getattr(ColorsConfig(), agent) for agent in Agent}
+AGENT_STYLE = {agent: f"bold {color}" for agent, color in AGENT_DOT.items()}
 MATCH_STYLE = Style(bgcolor="#665c00", color="#ffffff", bold=True)
 CURRENT_MATCH_STYLE = Style(bgcolor="#ff9e3b", color="#000000", bold=True)  # the one n/N landed on
-AGENT_DOT = {"claude": "#d97757", "codex": "#10a37f"}
 PROJECT_STYLE = "#e0a86e"
 
 
@@ -37,7 +39,7 @@ def apply_colors(colors) -> None:
     MATCH_STYLE = Style(bgcolor=hex_["match"], color="#ffffff", bold=True)
     CURRENT_MATCH_STYLE = Style(bgcolor=hex_["current_match"], color="#000000", bold=True)
     PROJECT_STYLE = hex_["project"]
-    for agent in ("claude", "codex"):
+    for agent in Agent:
         AGENT_DOT[agent] = hex_[agent]
         AGENT_STYLE[agent] = f"bold {hex_[agent]}"
 

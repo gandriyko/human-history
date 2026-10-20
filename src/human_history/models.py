@@ -17,6 +17,9 @@ class Role(StrEnum):
 class Agent(StrEnum):
     CLAUDE = "claude"
     CODEX = "codex"
+    OPENCODE = "opencode"
+    COPILOT = "copilot"
+    PI = "pi"
 
 
 class Message(BaseModel):

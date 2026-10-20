@@ -21,6 +21,8 @@ def run_in_pty(tmp_path: Path, finish) -> bytes:
         "XDG_DATA_HOME": str(tmp_path / "data"),
         "CLAUDE_CONFIG_DIR": str(tmp_path / "claude"),
         "CODEX_HOME": str(tmp_path / "codex"),
+        "COPILOT_HOME": str(tmp_path / "copilot"),
+        "PI_CODING_AGENT_DIR": str(tmp_path / "pi"),
         "HUMAN_HISTORY_CONFIG": str(tmp_path / "none.toml"),
     }
     env.pop("HERDR_ENV", None)

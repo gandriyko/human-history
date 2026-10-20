@@ -27,6 +27,7 @@ from human_history.integrations.resume import (
     directory_for,
     needs_confirmation,
 )
+from human_history.models import Agent
 from human_history.storage import search as store
 from human_history.storage.database import connect, get_kv, set_kv
 from human_history.storage.indexer import index_all
@@ -44,8 +45,8 @@ from human_history.utils.git import locate
 
 SCOPES = ["user", "assistant", "both", "title"]
 SCOPE_LABEL = {"user": "my prompts", "assistant": "agent answers", "both": "prompts+answers", "title": "titles"}
-AGENTS = ["all", "claude", "codex"]
-AGENT_FILTER_LABEL = {"all": "all agents", "claude": "claude", "codex": "codex"}
+AGENTS = ["all", *Agent]
+AGENT_FILTER_LABEL = {"all": "all agents", **{agent: agent.value for agent in Agent}}
 FILTERS = ["current-worktree", "repository", "all"]
 FILTER_LABEL = {"current-worktree": "worktree", "repository": "repository", "all": "all projects"}
 SORTS = ["last_activity_desc", "created_desc", "title_asc"]

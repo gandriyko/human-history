@@ -51,7 +51,8 @@ def index_all(
         for path in parser.discover(roots):
             seen.add(str(path))
             stats.scanned += 1
-            if index_file(conn, parser, path, stats):
+            indexer = index_store if getattr(parser, "multi_session", False) else index_file
+            if indexer(conn, parser, path, stats):
                 pending += 1
                 if pending >= BATCH_FILES:
                     conn.commit()
@@ -112,6 +113,21 @@ def index_file(conn: sqlite3.Connection, parser: Parser, path: Path, stats: Inde
         ),
     )
     return True
+
+
+def index_store(conn: sqlite3.Connection, parser, path: Path, stats: IndexStats) -> bool:
+    """Index a database holding many sessions (OpenCode). Its WAL makes ``stat`` useless for
+    change detection, so the parser is always asked, with the watermark it returned last time."""
+    row = conn.execute("SELECT state FROM files WHERE path = ?", (str(path),)).fetchone()
+    results, state = parser.parse_store(path, json.loads(row["state"]) if row else {})
+    for result in results:
+        stats.messages += _store(conn, parser.agent, _session_key(parser.agent, result, None, path), path, result)
+    conn.execute(
+        "INSERT OR REPLACE INTO files(path, agent, state) VALUES (?, ?, ?)",
+        (str(path), parser.agent.value, json.dumps(state)),
+    )
+    stats.parsed += bool(results)
+    return bool(results)
 
 
 def _session_key(agent: Agent, result: ParseResult, previous: str | None, path: Path) -> str:
@@ -212,7 +228,9 @@ def _forget_missing(conn: sqlite3.Connection, seen: set[str]) -> int:
     orphans = [
         r[0]
         for r in conn.execute(
-            "SELECT key FROM sessions WHERE key NOT IN (SELECT session_key FROM files WHERE session_key IS NOT NULL)"
+            # Sessions of a multi-session database are tied to it by path, not by files.session_key.
+            """SELECT key FROM sessions WHERE key NOT IN (SELECT session_key FROM files WHERE session_key IS NOT NULL)
+                 AND path NOT IN (SELECT path FROM files)"""
         )
     ]
     for key in orphans:

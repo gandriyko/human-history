@@ -26,6 +26,9 @@ class Parser(Protocol):
         """Agent-provided session titles keyed by session id (optional)."""
         ...
 
+    # A parser whose file is a database of many sessions sets ``multi_session = True`` and
+    # implements ``parse_store(path, state) -> (results, state)`` instead of ``parse``.
+
 
 def read_records(path: Path, offset: int, result: ParseResult) -> Iterator[tuple[int, dict[str, Any]]]:
     """Yield ``(line_offset, record)`` for every complete JSON-object line after ``offset``.

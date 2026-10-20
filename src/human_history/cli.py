@@ -113,7 +113,7 @@ def search_cmd(
     query: str,
     scope: ScopeOpt = "both",
     project_filter: FilterOpt = "all",
-    agent: Annotated[str | None, typer.Option(help="claude | codex")] = None,
+    agent: Annotated[str | None, typer.Option(help="claude | codex | opencode | copilot | pi")] = None,
     branch: str | None = None,
     since: Annotated[str | None, typer.Option(help="ISO date, e.g. 2026-10-01")] = None,
     until: str | None = None,

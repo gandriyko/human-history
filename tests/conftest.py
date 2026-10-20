@@ -26,6 +26,8 @@ def config(logs: Path, tmp_path: Path) -> Config:
     cfg = Config()
     cfg.paths.claude = [str(logs / "claude")]
     cfg.paths.codex = [str(logs / "codex" / "sessions")]
+    # Never the real ~/.copilot etc.; tests of these agents set their paths themselves.
+    cfg.paths.opencode = cfg.paths.copilot = cfg.paths.pi = []
     cfg.index.database = str(tmp_path / "index.sqlite3")
     cfg.index.auto_refresh = False
     return cfg
