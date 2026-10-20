@@ -152,8 +152,9 @@ class SessionList(OptionList):
     def show(self, rows: list[SessionRow], keep_key: str | None = None) -> None:
         self.rows = rows
         width = min(max((len(project_name(r)) for r in rows), default=8), 18)
+        agent_width = max((len(r.agent) for r in rows), default=6) + 1
         now = datetime.now(UTC)
-        self.set_options([Option(self._prompt(r, width, now), id=r.key) for r in rows])
+        self.set_options([Option(self._prompt(r, agent_width, width, now), id=r.key) for r in rows])
         if not rows:
             return
         index = next((i for i, r in enumerate(rows) if r.key == keep_key), 0)
@@ -172,12 +173,12 @@ class SessionList(OptionList):
         return self.rows[self.highlighted]
 
     @staticmethod
-    def _prompt(r: SessionRow, project_width: int, now: datetime) -> Text:
+    def _prompt(r: SessionRow, agent_width: int, project_width: int, now: datetime) -> Text:
         """``  1h ● claude  project   Title`` (+ an indented matching snippet while searching)."""
         line = Text(no_wrap=True, overflow="ellipsis")
         line.append(f"{ago(r.updated_at, now):>4} ", style="dim")
         line.append("● ", style=AGENT_DOT.get(r.agent, "white"))
-        line.append(f"{r.agent:<7}", style="dim")
+        line.append(f"{r.agent:<{agent_width}}", style="dim")
         project = project_name(r)
         if len(project) > project_width:
             project = project[: project_width - 1] + "…"
@@ -188,7 +189,7 @@ class SessionList(OptionList):
         if r.hits:
             line.append(f"  ({r.hits})", style="dim")
         if r.snippet:
-            line.append("\n" + " " * (16 + project_width))  # aligned under the title column
+            line.append("\n" + " " * (9 + agent_width + project_width))  # aligned under the title column
             line.append("you: " if r.hit_role == "user" else "agent: ", style="dim cyan")
             line.append_text(snippet_text(r.snippet))
         return line

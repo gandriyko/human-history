@@ -13,6 +13,18 @@ displayed or indexed.
 - Resume in the session's original directory or in the current worktree, always explicitly.
 - Herdr plugin `human-history`: overlay browser, resume into a new tab, and the overlay closes itself.
 
+![Session list: age, agent, project and title of every session](docs/screenshots/home.png)
+
+Typing searches prompts and answers; each hit shows the matching message:
+
+![Search results with the matching message under each session](docs/screenshots/search.png)
+
+Enter opens the conversation. `/` searches inside it vim-style, and `n` / `N` move between matches:
+
+![A conversation with in-session search matches highlighted](docs/screenshots/conversation.png)
+
+<sub>Screenshots use made-up demo sessions.</sub>
+
 ## Install
 
 ```sh
