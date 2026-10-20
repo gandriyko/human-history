@@ -80,7 +80,7 @@ def test_documented_example_is_valid(tmp_path):
 
 
 def test_missing_file_gives_defaults(tmp_path):
-    assert load_config(tmp_path / "nope.toml").search.default_project_filter == "current-worktree"
+    assert load_config(tmp_path / "nope.toml").search.default_project_filter == "repository"
 
 
 @pytest.mark.parametrize(

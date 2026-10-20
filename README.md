@@ -7,8 +7,8 @@ displayed or indexed.
 
 - Python 3.12, Textual/Rich TUI, Typer CLI, SQLite FTS5. No network, no telemetry, no AI calls.
 - Separate search scopes: **my prompts**, **agent answers**, **both**, **titles** (fuzzy).
-- Defaults to sessions from the **current git worktree**. `p` switches to the whole repository
-  (all worktrees) or to all projects.
+- Defaults to sessions from the **current git repository** (all its worktrees). `p` cycles
+  worktree → repository → all projects.
 - Resume in the session's original directory or in the current worktree, always explicitly.
 - Herdr plugin `human-history`: overlay browser, resume into a new tab, and the overlay closes itself.
 

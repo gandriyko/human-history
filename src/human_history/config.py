@@ -62,7 +62,7 @@ class ColorsConfig(_Section):
 
 class SearchConfig(_Section):
     default_scope: Scope = "both"
-    default_project_filter: ProjectFilter = "current-worktree"
+    default_project_filter: ProjectFilter = "repository"
     sort: Sort = "last_activity_desc"
     limit: int = Field(200, ge=10, le=5000)
 

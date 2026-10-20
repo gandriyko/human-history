@@ -473,7 +473,7 @@ class HistoryApp(App[ResumePlan | None]):
 
     def action_choose_project(self) -> None:
         if self.project_filter == "all":  # a project only narrows worktree/repository views
-            self.project_filter = "current-worktree"
+            self.project_filter = "repository"
             self.reload()
         select = self.query_one("#project", Select)
         select.focus()

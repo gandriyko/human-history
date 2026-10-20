@@ -23,7 +23,7 @@ current_match = "#ff9e3b"         # the match n / N is on (background)
 
 [search]
 default_scope = "both"                       # user | assistant | both | title
-default_project_filter = "current-worktree"  # current-worktree | repository | all
+default_project_filter = "repository"  # current-worktree | repository | all
 sort = "last_activity_desc"                  # last_activity_desc | created_desc | title_asc
 limit = 200                                  # sessions shown per list / search (10–5000)
 
