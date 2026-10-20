@@ -127,7 +127,7 @@ def open_history(
         args += ["--direction", "right"]
     if placement == "popup":
         args += ["--width", size, "--height", size]
-    if workspace:
+    if workspace and placement != "overlay":  # Herdr rejects a workspace for overlays: they open on the active pane
         args += ["--workspace", workspace]
     args += ["--cwd", cwd]
     for key, value in env.items():

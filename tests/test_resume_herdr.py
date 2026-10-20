@@ -132,7 +132,7 @@ def test_open_history_overlay(monkeypatch):
     args = fake.calls[0]
     assert args[:3] == ("plugin", "pane", "open")
     assert args[args.index("--placement") + 1] == "overlay"
-    assert "--target-pane" not in args  # overlays need no target
+    assert "--target-pane" not in args and "--workspace" not in args  # Herdr rejects both for overlays
     assert "HH_FILTER=current-worktree" in args and args[-1] == "--focus"
 
 
