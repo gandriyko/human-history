@@ -27,9 +27,9 @@ def test_config_init_writes_the_example(tmp_path, monkeypatch):
     assert runner.invoke(cli_app, ["config", "--init", "--force"]).exit_code == 0
 
 
-def test_readme_toml_examples_are_valid(tmp_path):
-    readme = (Path(__file__).parents[1] / "README.md").read_text()
-    blocks = [b for b in re.findall(r"```toml\n(.*?)```", readme, re.S) if "[[keys.command]]" not in b]  # not Herdr's
+def test_documented_toml_examples_are_valid(tmp_path):
+    documentation = (Path(__file__).parents[1] / "docs" / "configuration.md").read_text()
+    blocks = re.findall(r"```toml\n(.*?)```", documentation, re.S)
     assert len(blocks) >= 7
     for block in blocks:
         load_config(write(tmp_path, block))  # raises ConfigError on any invalid example
