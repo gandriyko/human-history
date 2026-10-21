@@ -2,7 +2,13 @@
 
 from __future__ import annotations
 
+import fcntl
+import json
 import os
+import re
+import sqlite3
+import stat
+import tempfile
 import tomllib
 from pathlib import Path
 from typing import Literal
@@ -78,6 +84,20 @@ class SearchConfig(_Section):
     default_project_filter: ProjectFilter = "repository"
     sort: Sort = "last_activity_desc"
     limit: int = Field(200, ge=10, le=5000)
+
+
+class RememberedConfig(_Section):
+    """Choices made in the TUI; these override the configured defaults."""
+
+    project_filter: ProjectFilter | None = None
+    sort: Sort | None = None
+    theme: str | None = None
+    resume_directory: ResumeDirectory | None = None
+
+    @field_validator("theme")
+    @classmethod
+    def _theme(cls, value: str | None) -> str | None:
+        return UIConfig._theme(value) if value is not None else None
 
 
 class ResumeConfig(_Section):
@@ -162,6 +182,7 @@ class Config(_Section):
     ui: UIConfig = Field(default_factory=UIConfig)
     colors: ColorsConfig = Field(default_factory=ColorsConfig)
     search: SearchConfig = Field(default_factory=SearchConfig)
+    remembered: RememberedConfig = Field(default_factory=RememberedConfig)
     resume: ResumeConfig = Field(default_factory=ResumeConfig)
     index: IndexConfig = Field(default_factory=IndexConfig)
     herdr: HerdrConfig = Field(default_factory=HerdrConfig)
@@ -203,3 +224,76 @@ def load_config(path: Path | None = None) -> Config:
             where = ".".join(str(p) for p in err["loc"])
             lines.append(f"  {where}: {err['msg']}")
         raise ConfigError("\n".join(lines)) from exc
+
+
+_TABLE = re.compile(r"^\s*\[+[^\]]+\]+\s*(?:#.*)?$")
+_REMEMBERED = re.compile(r"^\s*\[remembered\]\s*(?:#.*)?$")
+
+
+def save_remembered(key: str, value: str, *, only_if_missing: bool = False) -> bool:
+    """Write one TUI choice without rewriting unrelated TOML or losing concurrent choices."""
+    try:
+        RememberedConfig.model_validate({key: value})
+    except ValidationError as exc:
+        raise ConfigError(f"invalid remembered {key}: {value!r}") from exc
+    if key not in RememberedConfig.model_fields:
+        raise ConfigError(f"unknown remembered setting: {key}")
+
+    path = config_path()
+    if path.is_symlink():
+        path = path.resolve()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lock_path = path.with_name(path.name + ".lock")
+    with lock_path.open("a+") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        original = path.read_text(encoding="utf-8") if path.exists() else ""
+        data = tomllib.loads(original)
+        Config.model_validate(data)
+        if only_if_missing and key in data.get("remembered", {}):
+            return False
+
+        lines = original.splitlines(keepends=True)
+        start = next((i for i, line in enumerate(lines) if _REMEMBERED.fullmatch(line.strip())), None)
+        assignment = f"{key} = {json.dumps(value)}\n"
+        if start is None:
+            prefix = "" if not original else ("\n" if original.endswith("\n") else "\n\n")
+            updated = original + prefix + "[remembered]\n" + assignment
+        else:
+            end = next((i for i in range(start + 1, len(lines)) if _TABLE.fullmatch(lines[i].strip())), len(lines))
+            field = re.compile(rf"^\s*{re.escape(key)}\s*=")
+            position = next((i for i in range(start + 1, end) if field.match(lines[i])), None)
+            if position is None:
+                if not lines[start].endswith("\n"):
+                    lines[start] += "\n"
+                lines.insert(start + 1, assignment)
+            else:
+                old = lines[position]
+                comment = re.search(r"\s+#.*$", old.rstrip("\r\n"))
+                lines[position] = assignment.rstrip("\n") + (comment.group() if comment else "") + "\n"
+            updated = "".join(lines)
+
+        Config.model_validate(tomllib.loads(updated))
+        fd, temp_name = tempfile.mkstemp(prefix=".config.toml.", dir=path.parent)
+        try:
+            os.fchmod(fd, stat.S_IMODE(path.stat().st_mode) if path.exists() else 0o600)
+            with os.fdopen(fd, "w", encoding="utf-8") as temp:
+                temp.write(updated)
+            os.replace(temp_name, path)
+        finally:
+            if os.path.exists(temp_name):
+                os.unlink(temp_name)
+        return True
+
+
+def migrate_legacy_preferences(conn: sqlite3.Connection) -> bool:
+    """Move old index database choices into the config without overriding existing choices."""
+    rows = conn.execute(
+        "SELECT key, value FROM kv WHERE key IN ('project_filter', 'sort', 'theme', 'resume_directory')"
+    ).fetchall()
+    changed = False
+    for key, value in rows:
+        changed = save_remembered(key, value, only_if_missing=True) or changed
+    if rows:
+        with conn:
+            conn.executemany("DELETE FROM kv WHERE key = ?", [(key,) for key, _ in rows])
+    return changed

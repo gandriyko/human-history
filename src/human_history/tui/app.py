@@ -18,7 +18,7 @@ from textual.containers import Horizontal, Vertical
 from textual.timer import Timer
 from textual.widgets import Footer, Input, OptionList, Select, Static
 
-from human_history.config import ColorsConfig, Config
+from human_history.config import ColorsConfig, Config, save_remembered
 from human_history.integrations import herdr
 from human_history.integrations.resume import (
     ResumeError,
@@ -29,7 +29,7 @@ from human_history.integrations.resume import (
 )
 from human_history.models import Agent
 from human_history.storage import search as store
-from human_history.storage.database import connect, get_kv, set_kv
+from human_history.storage.database import connect
 from human_history.storage.indexer import index_all
 from human_history.tui.layout import latin_key
 from human_history.tui.screens import ConfirmScreen, HelpScreen, InfoScreen, ResumeDirectoryScreen, ThemeScreen
@@ -122,10 +122,8 @@ class HistoryApp(App[ResumePlan | None]):
         super().__init__(ansi_color=True)
         self.cwd = cwd
         self.db: sqlite3.Connection = connect(config.index.database_path())
-        self.project_filter = (
-            project_filter or get_kv(self.db, "project_filter") or config.search.default_project_filter
-        )
-        self.sort = get_kv(self.db, "sort") or config.search.sort
+        self.project_filter = project_filter or config.remembered.project_filter or config.search.default_project_filter
+        self.sort = config.remembered.sort or config.search.sort
         self.scope = scope or config.search.default_scope
         self.agent = "all"
         # The project the worktree/repository filters refer to; starts as the one we were launched in.
@@ -200,7 +198,7 @@ class HistoryApp(App[ResumePlan | None]):
     def on_mount(self) -> None:
         for theme in THEMES.values():
             self.register_theme(theme)
-        self.apply_theme(get_kv(self.db, "theme") or self.config.ui.theme)
+        self.apply_theme(self.config.remembered.theme or self.config.ui.theme)
         self.set_keymap(self.config.keymap())
         # SIGTERM (VS Code "Stop", kill) / SIGHUP (terminal closed) would otherwise kill the process
         # before Textual switches mouse tracking off, leaving the shell flooded with mouse reports.
@@ -247,7 +245,8 @@ class HistoryApp(App[ResumePlan | None]):
             self.agent = value
         elif event.select.id == "filter":
             self.project_filter = value
-            set_kv(self.db, "project_filter", value)
+            save_remembered("project_filter", value)
+            self.config.remembered.project_filter = value
         elif event.select.id == "project":
             self.project_root = value
         self.reload()
@@ -492,12 +491,14 @@ class HistoryApp(App[ResumePlan | None]):
 
     def action_cycle_project_filter(self) -> None:
         self.project_filter = FILTERS[(FILTERS.index(self.project_filter) + 1) % len(FILTERS)]
-        set_kv(self.db, "project_filter", self.project_filter)
+        save_remembered("project_filter", self.project_filter)
+        self.config.remembered.project_filter = self.project_filter
         self.reload()
 
     def action_cycle_sort(self) -> None:
         self.sort = SORTS[(SORTS.index(self.sort) + 1) % len(SORTS)]
-        set_kv(self.db, "sort", self.sort)
+        save_remembered("sort", self.sort)
+        self.config.remembered.sort = self.sort
         self.reload()
 
     def apply_theme(self, choice: str) -> None:
@@ -508,11 +509,12 @@ class HistoryApp(App[ResumePlan | None]):
         self.refresh_css()
 
     def action_choose_theme(self) -> None:
-        current = get_kv(self.db, "theme") or self.config.ui.theme
+        current = self.config.remembered.theme or self.config.ui.theme
 
         def chosen(choice: str | None) -> None:
             if choice:
-                set_kv(self.db, "theme", choice)
+                save_remembered("theme", choice)
+                self.config.remembered.theme = choice
             self.apply_theme(choice or current)  # Esc undoes the preview
 
         self.push_screen(ThemeScreen(current, self.apply_theme), chosen)
@@ -579,7 +581,7 @@ class HistoryApp(App[ResumePlan | None]):
         if row is None:
             return
         current = self.current_worktree()
-        policy = get_kv(self.db, "resume_directory") or self.config.resume.directory
+        policy = self.config.remembered.resume_directory or self.config.resume.directory
         directory = directory_for(policy, row, current)  # type: ignore[arg-type]
         if directory is None:
             choice = await self.push_screen_wait(ResumeDirectoryScreen(row, current))
@@ -587,7 +589,8 @@ class HistoryApp(App[ResumePlan | None]):
                 return
             directory, remember = choice
             if remember:
-                set_kv(self.db, "resume_directory", remember)
+                save_remembered("resume_directory", remember)
+                self.config.remembered.resume_directory = remember
         elif needs_confirmation(row, directory):
             ok = await self.push_screen_wait(
                 ConfirmScreen(

@@ -221,6 +221,7 @@ The complete file, with every option set to its default, is
 | `[ui]` | Theme (see [Themes](#themes)) and date format |
 | `[colors]` | Selection, scrollbar, project/agent and search-match colours |
 | `[search]` | Default scope, project filter, sort order and list size |
+| `[remembered]` | Choices saved from the TUI: project filter, sort, theme and resume directory |
 | `[resume]` | Directory policy (`ask` / `current` / `original`), Herdr placement, auto-close |
 | `[herdr]` | How the plugin opens the browser: overlay, popup, zoomed, split or tab |
 | `[index]` | Auto-refresh interval and database location |
@@ -306,10 +307,12 @@ The themes have the same names as Herdr's: `terminal`, `catppuccin`, `catppuccin
 `show_tool_calls`, `show_tool_results`, `show_reasoning` and `show_system_messages` are accepted
 under `[ui]` only as `false`, because technical events are never displayed.
 
-The choice of filter, sort and remembered resume policy is stored in the index database. The
-"Remember this choice" box in the resume dialog saves the resume policy. To be asked again, delete
-`resume_directory` from the `kv` table. `hh index --rebuild` also resets it, but it clears
-favorites too.
+The TUI saves the chosen project filter, sort, theme and remembered resume directory in
+`~/.config/human-history/config.toml` (or `$HUMAN_HISTORY_CONFIG`) under `[remembered]`. It creates
+the file on the first saved choice and moves any previously saved choices from the index database
+on the next launch. These choices override the defaults in `[search]`, `[ui]` and `[resume]`.
+To be asked where to resume again, delete `resume_directory` from `[remembered]`.
+`hh index --rebuild` does not reset these choices, although it still clears favorites.
 
 ## Resume rules
 

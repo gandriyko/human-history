@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import shutil
 import sys
+from contextlib import closing
 from typing import Annotated, get_args
 
 import typer
@@ -22,6 +23,7 @@ from human_history.config import (
     Sort,
     config_path,
     load_config,
+    migrate_legacy_preferences,
 )
 from human_history.integrations import herdr
 from human_history.integrations.resume import ResumeError, build_plan, exec_plan
@@ -79,6 +81,9 @@ def tui(
     from human_history.tui.app import run_tui
 
     config = _config()
+    with closing(connect(config.index.database_path())) as conn:
+        if migrate_legacy_preferences(conn):
+            config = _config()
     plan = run_tui(
         config,
         project_filter=_choice(project_filter or os.environ.get("HH_FILTER"), ProjectFilter, "filter"),

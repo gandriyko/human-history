@@ -33,6 +33,13 @@ default_project_filter = "repository"  # current-worktree | repository | all
 sort = "last_activity_desc"                  # last_activity_desc | created_desc | title_asc
 limit = 200                                  # sessions shown per list / search (10–5000)
 
+[remembered]
+# Choices made in the TUI are written here and override the defaults above.
+# project_filter = "repository"
+# sort = "last_activity_desc"
+# theme = "auto"
+# resume_directory = "ask"
+
 [resume]
 directory = "ask"                 # ask | current | original
 placement = "tab"                 # inside Herdr: tab | split-right | split-down
