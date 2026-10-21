@@ -70,7 +70,7 @@ description = "Humanized AI Session History"
 | Action | What it does |
 |---|---|
 | `human-history.open` | Browser using your default project filter |
-| `human-history.recent-here` | Browser limited to the focused pane's worktree |
+| `human-history.recent-here` | Browser limited to the focused pane's repository, including its worktrees |
 | `human-history.search` | Browser over all projects, for searching everything |
 | `human-history.resume-last` | Resume the newest session of the focused worktree in its own directory, with no UI |
 | `human-history.refresh-index` | Incremental re-index, with a Herdr notification |

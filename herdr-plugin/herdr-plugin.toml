@@ -35,7 +35,7 @@ command = ["sh", "hh.sh", "herdr-action", "open"]
 
 [[actions]]
 id = "recent-here"
-title = "human-history: recent sessions in this worktree"
+title = "human-history: recent sessions in this repository"
 contexts = ["pane", "workspace"]
 command = ["sh", "hh.sh", "herdr-action", "recent-here"]
 

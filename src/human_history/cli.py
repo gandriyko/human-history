@@ -228,7 +228,7 @@ def herdr_action(action: str) -> None:
         if target:
             env["HH_TARGET_PANE"] = target
         if action == "recent-here":
-            env["HH_FILTER"] = "current-worktree"
+            env["HH_FILTER"] = "repository"
         if action == "search":
             env["HH_FILTER"] = "all"  # the search box is always focused; search everything
         herdr.open_history(config.herdr.history_placement, cwd, env, workspace, target, config.herdr.popup_size)
