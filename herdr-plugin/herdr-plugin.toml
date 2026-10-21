@@ -1,6 +1,7 @@
 # human-history as a Herdr plugin: humanized Claude Code / Codex session history.
 #
-# Install (local checkout):   herdr plugin link /path/to/agent-history/herdr-plugin
+# Install from GitHub:        herdr plugin install gandriyko/human-history/herdr-plugin
+# Link a local checkout:      herdr plugin link /path/to/human-history/herdr-plugin
 # Bind a key in ~/.config/herdr/config.toml, then `herdr server reload-config`:
 #
 #   [[keys.command]]
@@ -14,6 +15,9 @@ version = "0.1.0"
 min_herdr_version = "0.9.0"
 platforms = ["macos", "linux"]
 description = "Read, search and resume Claude Code / Codex sessions as clean conversations."
+
+[[build]]
+command = ["sh", "build.sh"]
 
 # The browser pane. Pane commands resolve against the pane's cwd, hence the absolute launcher path.
 # Placement is chosen by the action ([herdr] history_placement in human-history's config).

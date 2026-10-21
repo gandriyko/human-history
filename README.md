@@ -28,7 +28,7 @@ Enter opens the conversation. `/` searches inside it vim-style, and `n` / `N` mo
 ## Install
 
 ```sh
-uv tool install /path/to/agent-history        # puts `human-history` and `hh` on PATH
+uv tool install /path/to/human-history          # puts `human-history` and `hh` on PATH
 human-history index                            # first full index (later runs are incremental)
 hh                                             # open the TUI
 ```
@@ -37,15 +37,31 @@ During development, `uv run human-history …` works from the checkout.
 
 ### Herdr plugin
 
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/) first. Herdr uses it to
+prepare Python and the locked dependencies during plugin installation. Then install the plugin
+directly from the public GitHub repository:
+
 ```sh
-herdr plugin link /path/to/agent-history/herdr-plugin
+herdr plugin install gandriyko/human-history/herdr-plugin
+herdr plugin action list --plugin human-history
 ```
 
-Then bind a key in `~/.config/herdr/config.toml` and run `herdr server reload-config`:
+The `/herdr-plugin` suffix selects the directory containing `herdr-plugin.toml`. The install
+builds the CLI inside Herdr's managed checkout; a separate `uv tool install` is not required.
+For local development, link this checkout instead:
+
+```sh
+herdr plugin link /path/to/human-history/herdr-plugin
+```
+
+`plugin link` skips the build, so run `uv sync --no-dev` in the checkout first.
+
+Optionally bind a free key in `~/.config/herdr/config.toml` and run
+`herdr server reload-config`:
 
 ```toml
 [[keys.command]]
-key = "f3"
+key = "f6"
 type = "plugin_action"
 command = "human-history.recent-here"
 description = "Humanized AI Session History"
@@ -68,8 +84,13 @@ already running that session, Herdr focuses it instead of starting a duplicate:
 
 The plugin launcher (`herdr-plugin/hh.sh`) looks for the CLI in this order:
 1. `$HUMAN_HISTORY_BIN`
-2. `human-history` on PATH, including `~/.local/bin`
-3. `uv run` in the checkout
+2. The CLI built in the plugin checkout's `.venv`
+3. `human-history` on PATH, including `~/.local/bin`
+4. `uv run` in the checkout
+
+To appear in the [Herdr plugin marketplace](https://herdr.dev/docs/marketplace/), make the
+GitHub repository public and add the `herdr-plugin` repository topic. Herdr discovers a valid
+manifest on the default branch automatically; no separate submission is needed.
 
 ## Keys
 
