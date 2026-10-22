@@ -629,6 +629,10 @@ TERMINAL_RESET = "\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l\x1b[?1015l\x1b[?1
 
 def run_tui(config: Config, cwd: str | None = None, **kwargs) -> ResumePlan | None:
     app = HistoryApp(config, cwd or os.environ.get("HH_CWD") or os.getcwd(), **kwargs)
+    if herdr.inside_herdr() and sys.__stdout__ and sys.__stdout__.isatty():
+        # Herdr shows the terminal title, else the process name (python3.12)
+        sys.__stdout__.write("\x1b]2;human-history\x07")
+        sys.__stdout__.flush()
     try:
         return app.run()
     finally:

@@ -65,6 +65,7 @@ class FakeHerdr:
     def __init__(self, panes=None):
         self.calls: list[tuple[str, ...]] = []
         self.panes = panes or []
+        self.open_plugin_panes: set[str] = set()
 
     def __call__(self, *args):
         self.calls.append(args)
@@ -74,6 +75,10 @@ class FakeHerdr:
             return {"result": {"tab": {"tab_id": "w1:t9"}, "root_pane": {"pane_id": "w1:p9"}}}
         if args[:2] == ("pane", "split"):
             return {"result": {"pane": {"pane_id": "w1:p8"}}}
+        if args[:3] == ("plugin", "pane", "open"):
+            return {"result": {"type": "plugin_pane_opened", "plugin_pane": {"pane": {"pane_id": "w1:p7"}}}}
+        if args[:3] == ("plugin", "pane", "close") and args[3] not in self.open_plugin_panes:
+            raise herdr.HerdrError("pane not found")
         if args[:2] == ("pane", "process-info"):
             return {"result": {"process_info": {"foreground_processes": [{"argv": ["codex", "resume", "S1"]}]}}}
         return {}
@@ -134,6 +139,21 @@ def test_open_history_overlay(monkeypatch):
     assert args[args.index("--placement") + 1] == "overlay"
     assert "--target-pane" not in args and "--workspace" not in args  # Herdr rejects both for overlays
     assert "HH_FILTER=current-worktree" in args and args[-1] == "--focus"
+
+
+def test_history_pane_toggles(monkeypatch, tmp_path):
+    fake = FakeHerdr()
+    fake.open_plugin_panes = {"w1:p7"}
+    monkeypatch.setattr(herdr, "call", fake)
+    monkeypatch.setenv("HERDR_PLUGIN_STATE_DIR", str(tmp_path))
+    assert not herdr.close_history()
+    herdr.open_history("overlay", "/w", {}, None, None, "90%")
+    assert herdr.close_history()
+    assert fake.calls[-1] == ("plugin", "pane", "close", "w1:p7")
+    assert not herdr.close_history()  # the second press after closing opens again
+    herdr.open_history("overlay", "/w", {}, None, None, "90%")
+    fake.open_plugin_panes = set()  # the user quit the browser with q
+    assert not herdr.close_history()
 
 
 def test_plugin_context_parsing(monkeypatch):

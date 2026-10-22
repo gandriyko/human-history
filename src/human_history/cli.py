@@ -227,6 +227,8 @@ def herdr_action(action: str) -> None:
         if action == "resume-last":
             _resume_last(config, cwd, workspace, target)
             return
+        if herdr.close_history():  # pressing the key again closes the browser
+            return
         env = {"HH_CWD": cwd}
         if workspace:
             env["HH_WORKSPACE"] = workspace

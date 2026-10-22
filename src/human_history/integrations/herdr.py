@@ -13,6 +13,7 @@ import os
 import shlex
 import shutil
 import subprocess
+from pathlib import Path
 from typing import Any
 
 from human_history.integrations.resume import ResumePlan
@@ -107,6 +108,25 @@ def resume(plan: ResumePlan, placement: str, workspace: str | None, target_pane:
     return pane_id
 
 
+def _pane_file() -> Path | None:
+    state_dir = os.environ.get("HERDR_PLUGIN_STATE_DIR")
+    return Path(state_dir) / "browser-pane" if state_dir else None
+
+
+def close_history() -> bool:
+    """Close the history pane opened by a previous action. False when none is open."""
+    pane_file = _pane_file()
+    if not pane_file or not pane_file.is_file():
+        return False
+    pane_id = pane_file.read_text().strip()
+    pane_file.unlink()
+    try:
+        call("plugin", "pane", "close", pane_id)  # fails once the user has quit the browser
+    except HerdrError:
+        return False
+    return True
+
+
 def open_history(
     placement: str, cwd: str, env: dict[str, str], workspace: str | None, target_pane: str | None, size: str
 ) -> None:
@@ -132,7 +152,11 @@ def open_history(
     args += ["--cwd", cwd]
     for key, value in env.items():
         args += ["--env", f"{key}={value}"]
-    call(*args, "--focus")
+    pane_id = call(*args, "--focus").get("result", {}).get("plugin_pane", {}).get("pane", {}).get("pane_id")
+    pane_file = _pane_file()
+    if pane_id and pane_file:  # popups have no pane id, so they cannot be toggled
+        pane_file.parent.mkdir(parents=True, exist_ok=True)
+        pane_file.write_text(pane_id)
 
 
 def notify(title: str, body: str) -> None:
