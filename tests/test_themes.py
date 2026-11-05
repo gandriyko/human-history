@@ -50,3 +50,22 @@ def test_theme_picker_previews_and_remembers(config, tmp_path, monkeypatch):
             assert app.theme == "nord" and load_config(config_path).remembered.theme == "nord"
 
     asyncio.run(scenario())
+
+
+def test_scope_and_agent_remembered_unless_given(config, tmp_path, monkeypatch):
+    config_path = tmp_path / "config.toml"
+    monkeypatch.setenv("HUMAN_HISTORY_CONFIG", str(config_path))
+
+    async def scenario():
+        app = HistoryApp(config, str(tmp_path), project_filter="all")
+        async with app.run_test(size=(100, 30)) as pilot:
+            await pilot.pause(0.2)
+            await pilot.press("escape", "tab", "a")  # scope both -> title, agent all -> claude
+            await pilot.pause(0.1)
+        saved = load_config(config_path)
+        assert (saved.remembered.scope, saved.remembered.agent) == ("title", "claude")
+        assert (HistoryApp(saved, str(tmp_path)).scope, HistoryApp(saved, str(tmp_path)).agent) == ("title", "claude")
+        explicit = HistoryApp(saved, str(tmp_path), scope="user", agent="codex")
+        assert (explicit.scope, explicit.agent) == ("user", "codex")
+
+    asyncio.run(scenario())

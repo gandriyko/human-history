@@ -27,6 +27,7 @@ DATA_DIR = _xdg("XDG_DATA_HOME", ".local/share") / "human-history"
 
 Scope = Literal["user", "assistant", "both", "title"]
 ProjectFilter = Literal["current-worktree", "repository", "all"]
+AgentFilter = Literal["all", "claude", "codex", "opencode", "copilot", "pi"]
 Sort = Literal["last_activity_desc", "created_desc", "title_asc"]
 ResumeDirectory = Literal["ask", "current", "original"]
 
@@ -89,6 +90,8 @@ class SearchConfig(_Section):
 class RememberedConfig(_Section):
     """Choices made in the TUI; these override the configured defaults."""
 
+    scope: Scope | None = None
+    agent: AgentFilter | None = None
     project_filter: ProjectFilter | None = None
     sort: Sort | None = None
     theme: str | None = None

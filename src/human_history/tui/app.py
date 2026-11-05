@@ -115,6 +115,7 @@ class HistoryApp(App[ResumePlan | None]):
         project_filter: str | None = None,
         scope: str | None = None,
         query: str = "",
+        agent: str | None = None,
     ) -> None:
         self.config = config  # before super().__init__: get_css_variables() reads it
         apply_colors(config.colors)
@@ -124,8 +125,8 @@ class HistoryApp(App[ResumePlan | None]):
         self.db: sqlite3.Connection = connect(config.index.database_path())
         self.project_filter = project_filter or config.remembered.project_filter or config.search.default_project_filter
         self.sort = config.remembered.sort or config.search.sort
-        self.scope = scope or config.search.default_scope
-        self.agent = "all"
+        self.scope = scope or config.remembered.scope or config.search.default_scope
+        self.agent = agent or config.remembered.agent or "all"
         # The project the worktree/repository filters refer to; starts as the one we were launched in.
         self.here = locate(cwd).worktree or cwd
         self.project_root = self.here
@@ -240,13 +241,11 @@ class HistoryApp(App[ResumePlan | None]):
         if state.get(event.select.id or "") == value:
             return  # mount-time / programmatic echo, nothing changed
         if event.select.id == "scope":
-            self.scope = value
+            self.scope = self.remember("scope", value)
         elif event.select.id == "agent":
-            self.agent = value
+            self.agent = self.remember("agent", value)
         elif event.select.id == "filter":
-            self.project_filter = value
-            save_remembered("project_filter", value)
-            self.config.remembered.project_filter = value
+            self.project_filter = self.remember("project_filter", value)
         elif event.select.id == "project":
             self.project_root = value
         self.reload()
@@ -474,32 +473,35 @@ class HistoryApp(App[ResumePlan | None]):
         self.action_scope(SCOPES[(SCOPES.index(self.scope) + 1) % len(SCOPES)])
 
     def action_scope(self, scope: str) -> None:
-        self.scope = scope
+        self.scope = self.remember("scope", scope)
         self.reload()
 
     def action_cycle_agent(self) -> None:
-        self.agent = AGENTS[(AGENTS.index(self.agent) + 1) % len(AGENTS)]
+        self.agent = self.remember("agent", AGENTS[(AGENTS.index(self.agent) + 1) % len(AGENTS)])
         self.reload()
 
     def action_choose_project(self) -> None:
         if self.project_filter == "all":  # a project only narrows worktree/repository views
-            self.project_filter = "repository"
+            self.project_filter = self.remember("project_filter", "repository")
             self.reload()
         select = self.query_one("#project", Select)
         select.focus()
         select.expanded = True
 
     def action_cycle_project_filter(self) -> None:
-        self.project_filter = FILTERS[(FILTERS.index(self.project_filter) + 1) % len(FILTERS)]
-        save_remembered("project_filter", self.project_filter)
-        self.config.remembered.project_filter = self.project_filter
+        following = FILTERS[(FILTERS.index(self.project_filter) + 1) % len(FILTERS)]
+        self.project_filter = self.remember("project_filter", following)
         self.reload()
 
     def action_cycle_sort(self) -> None:
-        self.sort = SORTS[(SORTS.index(self.sort) + 1) % len(SORTS)]
-        save_remembered("sort", self.sort)
-        self.config.remembered.sort = self.sort
+        self.sort = self.remember("sort", SORTS[(SORTS.index(self.sort) + 1) % len(SORTS)])
         self.reload()
+
+    def remember(self, key: str, value: str) -> str:
+        """Save a TUI choice to [remembered] and return it."""
+        save_remembered(key, value)
+        setattr(self.config.remembered, key, value)
+        return value
 
     def apply_theme(self, choice: str) -> None:
         """``choice`` is a theme name or ``auto``; ``terminal`` keeps the terminal's colours."""

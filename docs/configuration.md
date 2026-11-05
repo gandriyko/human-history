@@ -24,7 +24,7 @@ The complete file, with every option set to its default, is
 | `[ui]` | Theme (see [Themes](#themes)) and date format |
 | `[colors]` | Selection, scrollbar, project/agent and search-match colours |
 | `[search]` | Default scope, project filter, sort order and list size |
-| `[remembered]` | Choices saved from the TUI: project filter, sort, theme and resume directory |
+| `[remembered]` | Choices saved from the TUI: scope, agent, project filter, sort, theme and resume directory |
 | `[resume]` | Directory policy (`ask` / `current` / `original`), Herdr placement, auto-close |
 | `[herdr]` | How the plugin opens the browser: overlay, popup, zoomed, split or tab |
 | `[index]` | Auto-refresh interval and database location |
@@ -110,9 +110,10 @@ The themes have the same names as Herdr's: `terminal`, `catppuccin`, `catppuccin
 `show_tool_calls`, `show_tool_results`, `show_reasoning` and `show_system_messages` are accepted
 under `[ui]` only as `false`, because technical events are never displayed.
 
-The TUI saves the chosen project filter, sort, theme and remembered resume directory in
+The TUI saves the chosen scope, agent, project filter, sort, theme and remembered resume directory in
 `~/.config/human-history/config.toml` (or `$HUMAN_HISTORY_CONFIG`) under `[remembered]`. It creates
 the file on the first saved choice and moves any previously saved choices from the index database
-on the next launch. These choices override the defaults in `[search]`, `[ui]` and `[resume]`.
+on the next launch. These choices override the defaults in `[search]`, `[ui]` and `[resume]`;
+`--scope`, `--agent` and `--filter` on the command line override them for that launch.
 To be asked where to resume again, delete `resume_directory` from `[remembered]`.
 `hh index --rebuild` does not reset these choices, although it still clears favorites.

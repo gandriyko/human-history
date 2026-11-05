@@ -16,6 +16,7 @@ from rich.text import Text
 
 from human_history.config import (
     EXAMPLE_PATH,
+    AgentFilter,
     Config,
     ConfigError,
     ProjectFilter,
@@ -38,6 +39,7 @@ err = Console(stderr=True)
 
 FilterOpt = Annotated[str | None, typer.Option("--filter", "-f", help="current-worktree | repository | all")]
 ScopeOpt = Annotated[str | None, typer.Option("--scope", "-s", help="user | assistant | both | title")]
+AgentOpt = Annotated[str | None, typer.Option("--agent", "-a", help="all | claude | codex | opencode | copilot | pi")]
 
 
 def _choice(value: str | None, literal, name: str) -> str | None:
@@ -64,20 +66,22 @@ def main(
     ctx: typer.Context,
     project_filter: FilterOpt = None,
     scope: ScopeOpt = None,
+    agent: AgentOpt = None,
     query: Annotated[str, typer.Option("--query", "-q", help="Initial search text")] = "",
 ) -> None:
     """Open the TUI (default command)."""
     if ctx.invoked_subcommand is None:
-        tui(project_filter, scope, query)
+        tui(project_filter, scope, agent, query)
 
 
 @app.command()
 def tui(
     project_filter: FilterOpt = None,
     scope: ScopeOpt = None,
+    agent: AgentOpt = None,
     query: Annotated[str, typer.Option("--query", "-q")] = "",
 ) -> None:
-    """Browse and search sessions; resume one."""
+    """Browse and search sessions; resume one. Options not given come from [remembered] in the config."""
     from human_history.tui.app import run_tui
 
     config = _config()
@@ -88,6 +92,7 @@ def tui(
         config,
         project_filter=_choice(project_filter or os.environ.get("HH_FILTER"), ProjectFilter, "filter"),
         scope=_choice(scope, Scope, "scope"),
+        agent=_choice(agent, AgentFilter, "agent"),
         query=query,
     )
     if plan:

@@ -35,7 +35,7 @@ At start the cursor is in the session list; press `/` or click the search box to
 | typing | Filters the list as you type |
 | `↑` `↓` (`Ctrl+P` `Ctrl+N`), `PgUp` `PgDn` | Move through sessions while you keep typing |
 | `Enter` | Open the selected conversation for reading (this does not resume it) |
-| `Tab` | Cycle scope: prompts → answers → both → titles |
+| `Tab` | Cycle scope: prompts → answers → both → titles (remembered) |
 | `Ctrl+U` / `Ctrl+A` / `Ctrl+Shift+A` | Prompts only / answers only / both |
 | `Esc` | Clear the whole search at once. On an empty search, move to the list, where single-key actions such as `r`, `f`, `i`, `q` work |
 
@@ -49,7 +49,7 @@ At start the cursor is in the session list; press `/` or click the search box to
 | `Esc` | Clear the search; on an empty one, press twice to quit |
 | `p` | Project filter: worktree → repository → all (remembered) |
 | `o` | Choose a project (opens the dropdown) |
-| `a` | Agent: all → Claude → Codex → OpenCode → Copilot → Pi |
+| `a` | Agent: all → Claude → Codex → OpenCode → Copilot → Pi (remembered) |
 | `s` | Sort: recent / created / title (remembered) |
 | `t` | Theme picker with live preview (remembered) |
 
@@ -107,7 +107,7 @@ Some terminals cannot send `Ctrl+Shift+A`. Either use `Tab`, or rebind it under 
 
 ```sh
 hh                                    # TUI (same as `hh tui`)
-hh tui --filter repository --scope user --query "SQLAlchemy"
+hh tui --filter repository --scope user --agent claude --query "SQLAlchemy"
 hh search joinedload --scope assistant --filter all
 hh search "approval workflow" --agent codex --since 2026-10-01
 hh show 11111111                      # print a session as Markdown (id prefix)

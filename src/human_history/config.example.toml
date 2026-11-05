@@ -35,6 +35,9 @@ limit = 200                                  # sessions shown per list / search 
 
 [remembered]
 # Choices made in the TUI are written here and override the defaults above.
+# Command-line options (--scope, --agent, --filter) override these for one launch.
+# scope = "both"
+# agent = "all"
 # project_filter = "repository"
 # sort = "last_activity_desc"
 # theme = "auto"
