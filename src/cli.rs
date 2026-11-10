@@ -223,8 +223,9 @@ fn search_cmd(
     for ((row, when), project) in rows.iter().zip(&when).zip(&projects) {
         let project: String = project.chars().take(w_project).collect();
         let pad = |s: &str, w: usize| format!("{s}{}", " ".repeat(w.saturating_sub(s.chars().count())));
+        let star = if row.favorite { style.paint("1;33", "★ ") } else { String::new() };
         println!(
-            "{}  {}  {}  {}",
+            "{}  {}  {}  {star}{}",
             pad(when, w_when),
             pad(Agent::label(&row.agent), 8),
             style.paint("33", &pad(&project, w_project)),

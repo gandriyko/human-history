@@ -105,6 +105,11 @@ fn index_then_search_as_table_and_json() {
     let table = env.ok(&["search", "approval"]);
     assert!(table.contains("Approval workflow") && table.contains("Approvals perf"), "{table}");
     assert!(!table.contains('\x1b'), "no colours when piped");
+    assert!(!table.contains('★'));
+    let db = rusqlite::Connection::open(env.path("index.sqlite3")).unwrap();
+    db.execute("INSERT INTO favorites SELECT key FROM sessions WHERE title = 'Approvals perf'", []).unwrap();
+    let table = env.ok(&["search", "approval"]);
+    assert!(table.contains("★ Approvals perf") && !table.contains("★ Approval workflow"), "{table}");
     assert!(env.ok(&["search", "zzzqqq"]).contains("no matches"));
 
     let bad = env.run(&["search", "x", "-s", "everything"]);
