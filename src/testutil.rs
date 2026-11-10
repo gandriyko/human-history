@@ -1,4 +1,4 @@
-//! Shared test fixtures (the same `tests/fixtures` the Python suite uses).
+//! Shared test fixtures (`tests/fixtures`, also used by the end-to-end tests in `tests/cli.rs`).
 
 use std::path::{Path, PathBuf};
 

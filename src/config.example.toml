@@ -67,7 +67,7 @@ copilot = ["~/.copilot/session-state"]
 pi = ["~/.pi/agent/sessions"]
 
 [keys]
-# action = "comma,separated,keys" (Textual key names). Unlisted actions keep their defaults.
+# action = "comma,separated,keys" (ctrl+u, slash, question_mark, N, …). Unlisted actions keep their defaults.
 # Shortcuts also work on a Cyrillic (ЙЦУКЕН) layout without switching.
 focus_search = "slash"
 cycle_scope = "tab"

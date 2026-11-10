@@ -6,7 +6,7 @@ Offline, keyboard-first history browser for **Claude Code**, **Codex CLI**, **Op
 visible answers. Tool calls, tool results, reasoning, system/hook events and raw JSON are never
 displayed or indexed.
 
-- Python 3.12, Textual/Rich TUI, Typer CLI, SQLite FTS5. No network, no telemetry, no AI calls.
+- A single Rust binary (ratatui TUI, SQLite FTS5). No network, no telemetry, no AI calls.
 - Separate search scopes: **my prompts**, **agent answers**, **both**, **titles** (fuzzy).
 - Defaults to sessions from the **current git repository** (all its worktrees). `p` cycles
   worktree → repository → all projects.
@@ -17,7 +17,7 @@ displayed or indexed.
 
 ## Install
 
-Install [uv](https://docs.astral.sh/uv/getting-started/installation/) first.
+Install a Rust toolchain ([rustup](https://rustup.rs)) first: the binary is built from source.
 
 For Herdr:
 
@@ -25,13 +25,17 @@ For Herdr:
 herdr plugin install gandriyko/human-history/herdr-plugin
 ```
 
-For the standalone CLI from a local checkout:
+For the standalone CLI from a local checkout (installs `human-history` and its alias `hh` into
+`~/.cargo/bin`):
 
 ```sh
-uv tool install /path/to/human-history
+cargo install --path /path/to/human-history
 hh index
 hh
 ```
+
+The previous Python implementation lives on the `python` branch. Both use the same config and
+index files.
 
 See [Herdr plugin setup](docs/herdr.md) for actions, key bindings and local development.
 

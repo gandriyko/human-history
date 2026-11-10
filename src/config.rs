@@ -10,7 +10,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 /// Every option, with its default.
-pub const EXAMPLE: &str = include_str!("human_history/config.example.toml");
+pub const EXAMPLE: &str = include_str!("config.example.toml");
 
 /// Herdr's theme names (and order); `auto` follows Herdr inside Herdr.
 pub const THEMES: [&str; 13] = [
@@ -325,7 +325,7 @@ pub struct Config {
 }
 
 fn is_color(value: &str) -> bool {
-    // ponytail: Textual's `ansi_*` names are accepted by prefix; the TUI port resolves them.
+    // ponytail: `ansi_*` names are accepted by prefix; tui::theme::parse_color maps the known ones.
     csscolorparser::parse(value).is_ok() || value.starts_with("ansi_")
 }
 

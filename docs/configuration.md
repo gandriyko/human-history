@@ -13,11 +13,11 @@ hh config             # validates it and prints the effective settings
 
 - Every key is optional, so keep only what you change.
 - Unknown keys and invalid values stop the app with the exact location, for example
-  `colors.selection: not a colour: 'not-a-colour'`.
+  `colors.selection: not a colour: "not-a-colour"`.
 - Changes apply the next time the app starts.
 
 The complete file, with every option set to its default, is
-[`src/human_history/config.example.toml`](../src/human_history/config.example.toml). Its sections:
+[`src/config.example.toml`](../src/config.example.toml). Its sections:
 
 | Section | What it controls |
 |---|---|
@@ -29,7 +29,7 @@ The complete file, with every option set to its default, is
 | `[herdr]` | How the plugin opens the browser: overlay, popup, zoomed, split or tab |
 | `[index]` | Auto-refresh interval and database location |
 | `[paths]` | Where each agent's logs are read from |
-| `[keys]` | Any shortcut (`action = "key,other-key"`, Textual key names) |
+| `[keys]` | Any shortcut (`action = "key,other-key"`; names like `ctrl+u`, `slash`, `question_mark`, `N`) |
 
 ## Examples
 

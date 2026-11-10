@@ -83,7 +83,7 @@ At start the cursor is in the session list; press `/` or click the search box to
 | `Ctrl+R` | Re-index now |
 | `?` | Help |
 | `q` | Quit |
-| `Ctrl+C` twice | Quit from anywhere, including while typing. A single press copies the selected text |
+| `Ctrl+C` twice | Quit from anywhere, including while typing |
 | `Esc` twice | Quit from the home page when the search is empty. Elsewhere `Esc` steps back first: out of the find bar, then the conversation, then clears the search |
 
 Shortcuts do not depend on the keyboard layout. On a Ukrainian or Russian ЙЦУКЕН layout:
@@ -94,8 +94,8 @@ Shortcuts do not depend on the keyboard layout. On a Ukrainian or Russian ЙЦУ
 - In the search and find boxes, letters are still typed as Cyrillic text. Only `Ctrl` combinations
   are mapped there.
 
-Copying uses OSC 52, so it works over SSH in Kitty, Ghostty and Herdr. You can also select text
-with the mouse.
+Copying uses OSC 52, so it works over SSH in Kitty, Ghostty and Herdr. The app captures the mouse;
+to select text with it, hold `Shift` (or `Option` in iTerm2 and Terminal.app) while dragging.
 
 The search box accepts filters: `agent:codex`, `branch:main`, `since:2026-10-01`,
 `until:2026-10-15`, `cwd:.` (sessions started in exactly this directory). Words are ANDed. The last
@@ -110,6 +110,7 @@ hh                                    # TUI (same as `hh tui`)
 hh tui --filter repository --scope user --agent claude --query "SQLAlchemy"
 hh search joinedload --scope assistant --filter all
 hh search "approval workflow" --agent codex --since 2026-10-01
+hh search retry --json                # matching sessions as a JSON array (snippets without markup)
 hh show 11111111                      # print a session as Markdown (id prefix)
 hh resume-last                        # newest session of this worktree, in its own directory
 hh index [--rebuild]
@@ -125,7 +126,8 @@ hh config --init                      # create the config file from the document
 - `ask`: a dialog shows both paths and marks any that no longer exist.
 - Before anything is launched, the target directory must exist, the agent CLI must be on PATH, and
   the session id must match `[A-Za-z0-9._-]`.
-- Commands are argv lists. Inside Herdr the typed command line is built with `shlex.join`.
+- Commands are argv lists. Inside Herdr the typed command line quotes every argument for a POSIX
+  shell.
 - The commands are `claude --resume <id>`, `codex resume <id>`, `opencode --session <id>`,
   `copilot --resume=<id>` and `pi --session <id>`.
 - Claude Code, OpenCode and pi find sessions by project directory, so resuming one in another

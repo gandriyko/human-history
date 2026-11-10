@@ -71,10 +71,15 @@
 ## Development
 
 ```sh
-uv sync
-uv run pytest
-uv run ruff check src tests && uv run ruff format --check src tests
+cargo build --release          # target/release/human-history and target/release/hh
+cargo test                     # unit tests, TUI scenarios and end-to-end CLI tests (tests/cli.rs)
+cargo clippy --all-targets
 ```
 
-To add an agent, implement `parsers/base.Parser` (`discover`, `parse`, `titles`), register it in
-`parsers/__init__.py`, and add a resume command in `integrations/resume.py`.
+The end-to-end tests run the binary with its own config, index and fake `claude` / `herdr`
+executables; TUI tests drive the app with key events into an in-memory terminal. Neither touches
+your real config, index or Herdr.
+
+To add an agent: add a variant to `Agent` (`src/model.rs`), write `src/parsers/<agent>.rs` with a
+`parse` function, wire it into `discover`, `titles` and `parse` in `src/parsers/mod.rs`, give it
+default log paths in `PathsConfig` (`src/config.rs`) and a resume command in `src/resume.rs`.
