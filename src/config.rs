@@ -619,7 +619,7 @@ mod tests {
         let path = dir.path().join("config.toml");
         let original = "# mine\n[ui]\ntheme = \"nord\"  # keep\n\n[remembered]\nsort = \"created_desc\"  # note\n[index]\nauto_refresh = false\n";
         std::fs::write(&path, original).unwrap();
-        // ponytail: the only test touching HUMAN_HISTORY_CONFIG, so no lock against parallel tests.
+        let _env = crate::testutil::lock_env();
         unsafe { env::set_var("HUMAN_HISTORY_CONFIG", &path) };
         assert!(save_remembered("sort", "title_asc", false).unwrap());
         assert!(save_remembered("scope", "user", false).unwrap());

@@ -597,9 +597,12 @@ fn draw_modal(frame: &mut Frame, app: &mut App) {
         }
         Modal::Dropdown { options, cursor, anchor, .. } => {
             let area = frame.area();
-            let w = options.iter().map(|(l, _)| width(l) as u16 + 4).max().unwrap_or(10).max(anchor.width).min(area.width - anchor.x);
-            let h = (options.len() as u16).min(12).min(area.height.saturating_sub(anchor.y + 3)) + 2;
-            let rect = Rect::new(anchor.x, anchor.y + 1, w, h);
+            // The anchor comes from an earlier frame: the window may have shrunk since.
+            let w = options.iter().map(|(l, _)| width(l) as u16 + 4).max().unwrap_or(10).max(anchor.width).min(area.width);
+            let x = anchor.x.min(area.width - w);
+            let y = (anchor.y + 1).min(area.height.saturating_sub(3));
+            let h = ((options.len() as u16).min(12) + 2).min(area.height - y);
+            let rect = Rect::new(x, y, w, h);
             let block = Block::bordered()
                 .border_type(BorderType::Rounded)
                 .border_style(fg(theme.accent))

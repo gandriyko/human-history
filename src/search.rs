@@ -86,7 +86,7 @@ impl Filters {
 }
 
 #[derive(Clone, Debug)]
-#[allow(dead_code)] // the full row is for the TUI port; the CLI reads a subset
+#[derive(serde::Serialize)]
 pub struct SessionRow {
     pub key: String,
     pub agent: String,
@@ -105,9 +105,15 @@ pub struct SessionRow {
     // Set for search results: best matching message and its snippet.
     pub hit_message_id: Option<i64>,
     pub hit_role: Option<String>,
+    #[serde(serialize_with = "plain_snippet")]
     pub snippet: Option<String>,
     pub hits: usize,
     pub match_ids: Vec<i64>,
+}
+
+/// JSON gets the snippet without the terminal highlight markers.
+fn plain_snippet<S: serde::Serializer>(snippet: &Option<String>, s: S) -> Result<S::Ok, S::Error> {
+    serde::Serialize::serialize(&snippet.as_ref().map(|t| t.replace([HL_START, HL_END], "")), s)
 }
 
 const SESSION_COLUMNS: &str = "s.key, s.agent, s.session_id, COALESCE(s.title, '(untitled)') AS title, s.cwd,
@@ -522,6 +528,22 @@ mod tests {
         let first = &list_sessions(&e.db, &ALL, Sort::LastActivityDesc, 200).unwrap()[0];
         assert!(first.key == last.key && first.favorite);
         assert!(!toggle_favorite(&e.db, &last.key).unwrap());
+    }
+
+    #[test]
+    fn json_rows_carry_plain_snippets() {
+        let e = env();
+        index_all(&e.db, &e.config).unwrap();
+        let rows = find(&e.db, "joinedload", Scope::Both, &ALL);
+        let json = serde_json::to_value(&rows).unwrap();
+        let row = &json[0];
+        assert_eq!(row["key"], CLAUDE_KEY);
+        assert_eq!(row["hit_role"], "assistant");
+        assert_eq!(row["hits"], 1);
+        let snippet = row["snippet"].as_str().unwrap();
+        assert!(snippet.contains("joinedload") && !snippet.contains([HL_START, HL_END]));
+        let listed = list_sessions(&e.db, &ALL, Sort::LastActivityDesc, 200).unwrap();
+        assert!(serde_json::to_value(&listed).unwrap()[0]["snippet"].is_null());
     }
 
     #[test]

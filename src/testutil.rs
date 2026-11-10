@@ -14,6 +14,20 @@ pub const CODEX_KEY: &str = "codex:22222222-bbbb-4ccc-8ddd-000000000002";
 /// Text placed only inside tool calls/results, reasoning, system/meta events. Never indexed or shown.
 pub const FORBIDDEN: [&str; 5] = ["TOOLSECRET", "REASONINGSECRET", "SYSTEMSECRET", "HOOKSECRET", "SIDECHAINSECRET"];
 
+/// Serializes tests that change process-wide environment variables (config path, PATH, HERDR_ENV).
+static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+pub fn lock_env() -> std::sync::MutexGuard<'static, ()> {
+    ENV_LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+/// An executable shell script at `path`.
+pub fn script(path: &Path, body: &str) {
+    use std::os::unix::fs::PermissionsExt;
+    std::fs::write(path, format!("#!/bin/sh\n{body}\n")).unwrap();
+    std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
+}
+
 pub fn fixtures() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures")
 }
@@ -70,6 +84,7 @@ pub fn env() -> Env {
     config.paths.copilot = vec![];
     config.paths.pi = vec![];
     config.index.database = Some(lossy(&root.join("index.sqlite3")));
+    config.index.auto_refresh = false;
     let db = connect(&config.index.database_path()).unwrap();
     Env { _dir: dir, root, logs, config, db }
 }

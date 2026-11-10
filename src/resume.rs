@@ -109,4 +109,38 @@ mod tests {
         assert!(resume_argv("claude", "../x").is_err());
         assert!(resume_argv("vim", "abc").is_err());
     }
+
+    fn session(cwd: Option<&str>) -> SessionRow {
+        let e = crate::testutil::env();
+        crate::indexer::index_all(&e.db, &e.config).unwrap();
+        let mut row = crate::search::get_session(&e.db, crate::testutil::CLAUDE_KEY).unwrap().unwrap();
+        row.cwd = cwd.map(str::to_string);
+        row
+    }
+
+    #[test]
+    fn directory_policies_and_confirmation() {
+        let dir = tempfile::tempdir().unwrap();
+        let here = dir.path().to_string_lossy().into_owned();
+        let recorded = session(Some(&here));
+        assert_eq!(directory_for(ResumeDirectory::Original, &recorded, "/elsewhere").as_deref(), Some(here.as_str()));
+        assert_eq!(directory_for(ResumeDirectory::Current, &recorded, "/elsewhere").as_deref(), Some("/elsewhere"));
+        assert_eq!(directory_for(ResumeDirectory::Ask, &recorded, "/elsewhere"), None);
+        assert_eq!(directory_for(ResumeDirectory::Original, &session(None), "/elsewhere"), None);
+        // the session's own directory (even spelled differently) is fine; anything else is confirmed
+        assert!(!needs_confirmation(&recorded, &format!("{here}/./")));
+        assert!(needs_confirmation(&recorded, "/elsewhere"));
+        assert!(needs_confirmation(&session(None), &here));
+    }
+
+    #[test]
+    fn build_plan_refuses_missing_directories_and_unsafe_ids() {
+        let mut row = session(Some("/work/app"));
+        assert!(build_plan(&row, "/definitely/missing").unwrap_err().contains("does not exist"));
+        row.session_id = "x; rm -rf ~".into();
+        assert!(build_plan(&row, "/").unwrap_err().contains("unexpected session id"));
+        row.session_id = "abc".into();
+        row.agent = "vim".into();
+        assert!(build_plan(&row, "/").unwrap_err().contains("not supported"));
+    }
 }

@@ -84,6 +84,9 @@ enum Cmd {
         sort: Sort,
         #[arg(long, default_value_t = 20)]
         limit: usize,
+        /// Print the matching sessions as a JSON array
+        #[arg(long)]
+        json: bool,
     },
     /// Print a session as a clean Markdown conversation.
     Show {
@@ -198,6 +201,7 @@ fn search_cmd(
     exact_cwd: Option<String>,
     sort: Sort,
     limit: usize,
+    json: bool,
 ) {
     let config = load();
     let conn = open(&config);
@@ -212,6 +216,10 @@ fn search_cmd(
         favorites_only: false,
     };
     let rows = search::search(&conn, query, scope, &filters, sort, limit).unwrap_or_else(|e| fail(1, e));
+    if json {
+        println!("{}", serde_json::to_string_pretty(&rows).unwrap());
+        return;
+    }
     let style = Style { on: std::io::stdout().is_terminal() };
     if rows.is_empty() {
         println!("{}", style.paint("2", "no matches"));
@@ -355,8 +363,8 @@ fn main() {
         None => tui_cmd(cli.tui),
         Some(Cmd::Tui(args)) => tui_cmd(args),
         Some(Cmd::Index { rebuild }) => index(rebuild),
-        Some(Cmd::Search { query, scope, project_filter, agent, branch, since, until, cwd, sort, limit }) => {
-            search_cmd(&query, scope, project_filter, agent, branch, since, until, cwd, sort, limit)
+        Some(Cmd::Search { query, scope, project_filter, agent, branch, since, until, cwd, sort, limit, json }) => {
+            search_cmd(&query, scope, project_filter, agent, branch, since, until, cwd, sort, limit, json)
         }
         Some(Cmd::Show { session }) => show(&session),
         Some(Cmd::ResumeLast) => {

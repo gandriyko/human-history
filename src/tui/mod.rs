@@ -1,5 +1,7 @@
 //! Terminal UI: a centered session list; Enter opens the conversation full-width.
 
+#[cfg(test)]
+mod app_tests;
 mod conversation;
 mod draw;
 mod keys;
