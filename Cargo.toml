@@ -1,0 +1,28 @@
+[package]
+name = "human-history"
+version = "0.1.0"
+edition = "2024"
+description = "Humanized, offline history browser for Claude Code and Codex sessions"
+publish = false
+
+[[bin]]
+name = "human-history"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0.104"
+chrono = "0.4.45"
+clap = { version = "4.6.7", features = ["derive"] }
+csscolorparser = "0.9.0"
+regex = "1.13.1"
+rusqlite = { version = "0.41.1", features = ["bundled"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+toml = "1.2.1"
+
+[dev-dependencies]
+tempfile = "3.27.0"
+
+[profile.release]
+strip = true
+lto = true
