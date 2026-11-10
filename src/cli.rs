@@ -80,6 +80,9 @@ enum Cmd {
     Show {
         /// Session id (or unique prefix)
         session: String,
+        /// Print the session and its messages as a JSON object
+        #[arg(long)]
+        json: bool,
     },
     /// Resume the most recent session of the current worktree in its original directory.
     ResumeLast,
@@ -237,7 +240,7 @@ fn search_cmd(
     }
 }
 
-fn show(session: &str) {
+fn show(session: &str, json: bool) {
     let config = load();
     let conn = open(&config);
     let keys: Vec<String> = conn
@@ -248,10 +251,16 @@ fn show(session: &str) {
         fail(1, format!("{} session matching {session:?}", if keys.is_empty() { "no" } else { "ambiguous" }));
     }
     let row = search::get_session(&conn, &keys[0]).unwrap_or_else(|e| fail(1, e)).expect("key just listed");
+    let messages = search::messages(&conn, &row.key).unwrap_or_else(|e| fail(1, e));
+    if json {
+        let out = serde_json::json!({ "session": row, "messages": messages });
+        println!("{}", serde_json::to_string_pretty(&out).unwrap());
+        return;
+    }
     let style = Style { on: std::io::stdout().is_terminal() };
     println!("{}", style.paint("1;4", &row.title));
     let mut previous: Option<String> = None;
-    for m in search::messages(&conn, &row.key).unwrap_or_else(|e| fail(1, e)) {
+    for m in messages {
         if previous.as_deref() != Some(&m.role) {
             if m.role == "user" && previous.is_some() {
                 println!("\n{}", style.paint("2", &"─".repeat(40)));
@@ -354,7 +363,7 @@ pub fn main() {
         Some(Cmd::Search { query, scope, project_filter, agent, branch, since, until, cwd, sort, limit, json }) => {
             search_cmd(&query, scope, project_filter, agent, branch, since, until, cwd, sort, limit, json)
         }
-        Some(Cmd::Show { session }) => show(&session),
+        Some(Cmd::Show { session, json }) => show(&session, json),
         Some(Cmd::ResumeLast) => {
             let workspace = env::var("HERDR_WORKSPACE_ID").ok();
             let target = env::var("HERDR_PANE_ID").ok();

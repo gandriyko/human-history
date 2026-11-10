@@ -69,6 +69,10 @@ Prints the title, then the conversation as Markdown under `USER` / `<AGENT>` hea
 first. Conversations can be long: pipe through `grep -n` or `sed -n` and read the relevant part
 instead of the whole output.
 
+`hh show SESSION --json` prints `{"session": {...}, "messages": [{"role", "ts", "text"}]}`:
+`session` has the same fields as a search row, `text` is the raw message (Markdown as the agent
+wrote it), e.g. `hh show "$id" --json | jq -r '.messages[] | select(.role=="user") | .text'`.
+
 ## Recipes
 
 ```sh

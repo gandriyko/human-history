@@ -338,6 +338,7 @@ pub fn toggle_favorite(conn: &Connection, key: &str) -> rusqlite::Result<bool> {
     Ok(true)
 }
 
+#[derive(serde::Serialize)]
 pub struct MessageRow {
     pub role: String,
     pub ts: Option<String>,

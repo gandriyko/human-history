@@ -112,6 +112,7 @@ hh search joinedload --scope assistant --filter all
 hh search "approval workflow" --agent codex --since 2026-10-01
 hh search retry --json                # matching sessions as a JSON array (snippets without markup)
 hh show 11111111                      # print a session as Markdown (id prefix)
+hh show 11111111 --json               # session + messages (role, ts, raw text) as JSON
 hh resume-last                        # newest session of this worktree, in its own directory
 hh index [--rebuild]
 hh config                             # validate and print the effective configuration

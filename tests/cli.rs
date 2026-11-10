@@ -122,6 +122,12 @@ fn show_prints_only_the_human_conversation() {
     for marker in ["TOOLSECRET", "REASONINGSECRET", "SYSTEMSECRET", "HOOKSECRET", "SIDECHAINSECRET", "\x1b"] {
         assert!(!out.contains(marker), "{marker}");
     }
+    let json: Value = serde_json::from_str(&env.ok(&["show", "1111", "--json"])).unwrap();
+    assert_eq!(json["session"]["title"], "Approvals perf");
+    let messages = json["messages"].as_array().unwrap();
+    assert_eq!(messages[0]["role"], "user");
+    assert!(messages.iter().any(|m| m["text"].as_str().unwrap().contains("N+1 problem")));
+    assert!(!json.to_string().contains("TOOLSECRET"));
     let missing = env.run(&["show", "nope"]);
     assert_eq!(missing.status.code(), Some(1));
     assert!(stderr(&missing).contains("no session matching"));
