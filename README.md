@@ -44,6 +44,16 @@ See [Herdr plugin setup](docs/herdr.md) for actions, key bindings and local deve
 Press `/` to search, `Enter` to read a conversation and `r` to resume a session. The `p` key
 switches between the current worktree, its repository and all projects.
 
+### For coding agents
+
+[`skills/human-history/SKILL.md`](skills/human-history/SKILL.md) is an agent skill: it teaches an
+agent to search your past sessions with `hh search --json` and read them with `hh show`. Link it
+into the skills directory of an agent that supports `SKILL.md` skills, e.g. for Claude Code:
+
+```sh
+ln -s /path/to/human-history/skills/human-history ~/.claude/skills/human-history
+```
+
 - [Usage and keyboard shortcuts](docs/usage.md)
 - [Configuration and themes](docs/configuration.md)
 - [Parsing, indexing and development](docs/internals.md)
