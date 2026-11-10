@@ -1,5 +1,5 @@
 //! human-history: an offline, humanized history browser for coding-agent sessions.
-//! The `human-history` and `hh` binaries both run `cli::main`.
+//! The `human-history` binary runs `cli::main`.
 
 pub mod cli;
 pub mod config;

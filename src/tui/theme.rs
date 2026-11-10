@@ -144,7 +144,7 @@ impl Theme {
             theme.accent = c(accent);
             theme.warning = c(warning);
             theme.error = c(error);
-            // A value equal to the default (e.g. from `hh config --init`) still follows the theme.
+            // A value equal to the default (e.g. from `human-history config --init`) still follows the theme.
             if colors.selection == defaults.selection {
                 theme.selection = blend(bg, primary, 0.35);
             }

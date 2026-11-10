@@ -65,7 +65,7 @@ pub fn parse_store(path: &Path, state: State) -> (Vec<ParseResult>, State) {
 fn read_changed(path: &Path, since: f64) -> rusqlite::Result<(Vec<ParseResult>, Option<f64>)> {
     let conn = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
     conn.busy_timeout(Duration::from_secs(2))?;
-    // ponytail: sessions deleted inside Hermes stay in the index until `hh index --rebuild`.
+    // ponytail: sessions deleted inside Hermes stay in the index until `human-history index --rebuild`.
     let mut stmt = conn.prepare(
         "SELECT * FROM sessions WHERE started_at > ?1 OR ended_at > ?1
            OR id IN (SELECT session_id FROM messages WHERE timestamp > ?1)",

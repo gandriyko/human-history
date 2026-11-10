@@ -47,7 +47,7 @@ already running that session, Herdr focuses it instead of starting a duplicate:
 - Claude sessions are matched by Herdr's agent session id.
 - Other agents' sessions are matched by process argv.
 
-The plugin launcher (`herdr-plugin/hh.sh`) looks for the CLI in this order:
+The plugin launcher (`herdr-plugin/human-history.sh`) looks for the CLI in this order:
 1. `$HUMAN_HISTORY_BIN`
 2. `target/release/human-history` in the plugin checkout
 3. `human-history` on PATH, including `~/.cargo/bin` and `~/.local/bin`

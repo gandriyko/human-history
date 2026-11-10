@@ -25,33 +25,33 @@ command = ["sh", "build.sh"]
 id = "browser"
 title = "human-history"
 placement = "overlay"
-command = ["sh", "-c", "exec \"$HERDR_PLUGIN_ROOT/hh.sh\" tui"]
+command = ["sh", "-c", "exec \"$HERDR_PLUGIN_ROOT/human-history.sh\" tui"]
 
 [[actions]]
 id = "open"
 title = "human-history: open"
 contexts = ["pane", "workspace"]
-command = ["sh", "hh.sh", "herdr-action", "open"]
+command = ["sh", "human-history.sh", "herdr-action", "open"]
 
 [[actions]]
 id = "recent-here"
 title = "human-history: recent sessions in this repository"
 contexts = ["pane", "workspace"]
-command = ["sh", "hh.sh", "herdr-action", "recent-here"]
+command = ["sh", "human-history.sh", "herdr-action", "recent-here"]
 
 [[actions]]
 id = "search"
 title = "human-history: search"
 contexts = ["pane", "workspace"]
-command = ["sh", "hh.sh", "herdr-action", "search"]
+command = ["sh", "human-history.sh", "herdr-action", "search"]
 
 [[actions]]
 id = "resume-last"
 title = "human-history: resume last session here"
 contexts = ["pane", "workspace"]
-command = ["sh", "hh.sh", "herdr-action", "resume-last"]
+command = ["sh", "human-history.sh", "herdr-action", "resume-last"]
 
 [[actions]]
 id = "refresh-index"
 title = "human-history: refresh index"
-command = ["sh", "hh.sh", "herdr-action", "refresh-index"]
+command = ["sh", "human-history.sh", "herdr-action", "refresh-index"]

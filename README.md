@@ -29,7 +29,7 @@ For the standalone CLI from a local checkout (installs the `human-history` binar
 `~/.cargo/bin`):
 
 ```sh
-cargo install --path /path/to/human-history --bin human-history
+cargo install --path /path/to/human-history
 human-history index
 human-history
 ```

@@ -83,7 +83,7 @@ SQLite, opened read-only):
 ## Development
 
 ```sh
-cargo build --release          # target/release/human-history and target/release/hh
+cargo build --release          # target/release/human-history
 cargo test                     # unit tests, TUI scenarios and end-to-end CLI tests (tests/cli.rs)
 cargo clippy --all-targets
 ```

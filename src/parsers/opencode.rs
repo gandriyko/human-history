@@ -46,7 +46,7 @@ type Changed = (Vec<(ParseResult, Vec<i64>)>, Option<i64>);
 fn read_changed(path: &Path, since: i64) -> rusqlite::Result<Changed> {
     let conn = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
     conn.busy_timeout(Duration::from_secs(2))?;
-    // ponytail: sessions deleted inside OpenCode stay in the index until `hh index --rebuild`.
+    // ponytail: sessions deleted inside OpenCode stay in the index until `human-history index --rebuild`.
     let mut stmt = conn.prepare(
         "SELECT id, directory, title, time_created, time_updated FROM session
          WHERE parent_id IS NULL AND (time_updated > ?1

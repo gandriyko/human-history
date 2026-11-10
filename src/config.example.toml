@@ -1,8 +1,8 @@
 # human-history configuration
 #
 # Location: ~/.config/human-history/config.toml   (or the path in $HUMAN_HISTORY_CONFIG)
-# Create it with:  hh config --init
-# Check it with:   hh config
+# Create it with:  human-history config --init
+# Check it with:   human-history config
 #
 # Every key is optional: delete anything you do not want to change. The values below are the
 # defaults. Unknown keys and invalid values are reported with their exact location.

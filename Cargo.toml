@@ -9,10 +9,6 @@ publish = false
 name = "human-history"
 path = "src/main.rs"
 
-[[bin]]
-name = "hh"
-path = "src/bin/hh.rs"
-
 [dependencies]
 anyhow = "1.0.104"
 chrono = "0.4.45"

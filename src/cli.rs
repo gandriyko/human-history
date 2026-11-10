@@ -1,4 +1,4 @@
-//! Command line entry point: `human-history` (alias `hh`).
+//! Command line entry point: `human-history`.
 
 use std::env;
 use std::io::IsTerminal;
@@ -367,7 +367,7 @@ fn config_cmd(init: bool, force: bool) {
             std::fs::create_dir_all(parent).unwrap_or_else(|e| fail(1, e));
         }
         std::fs::write(&path, EXAMPLE).unwrap_or_else(|e| fail(1, e));
-        println!("created {} — edit it, then check with `hh config`", path.display());
+        println!("created {} — edit it, then check with `human-history config`", path.display());
         return;
     }
     let config = load();
