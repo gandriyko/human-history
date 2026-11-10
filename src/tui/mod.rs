@@ -1185,6 +1185,28 @@ fn reset_terminal() {
     let _ = out.flush();
 }
 
+/// Once the terminal is gone (window closed, pty revoked), crossterm 0.29 spins at 100% CPU inside
+/// `event::poll`: its tty read loop gets EOF, never `WouldBlock`, and never returns. The main loop
+/// then never sees `stop`, so this thread ends the process when the terminal disappears or when a
+/// SIGTERM/SIGHUP is not honoured within a second.
+fn watch_hangup(stop: Arc<AtomicBool>) {
+    use std::io::IsTerminal;
+    let has_tty = || std::io::stdin().is_terminal() || std::io::stdout().is_terminal();
+    if !has_tty() {
+        return;
+    }
+    std::thread::spawn(move || loop {
+        std::thread::sleep(Duration::from_secs(1));
+        if !has_tty() {
+            std::process::exit(129); // as if killed by SIGHUP; there is no terminal left to restore
+        }
+        if stop.load(Ordering::Relaxed) {
+            std::thread::sleep(Duration::from_secs(1)); // the normal exit path restores the terminal
+            std::process::exit(143);
+        }
+    });
+}
+
 pub fn run(config: Config, cwd: String, opts: Options) -> Result<Option<ResumePlan>, String> {
     let mut app = App::new(config, cwd, opts)?;
     let stop = Arc::new(AtomicBool::new(false));
@@ -1193,6 +1215,7 @@ pub fn run(config: Config, cwd: String, opts: Options) -> Result<Option<ResumePl
     for signal in [signal_hook::consts::SIGTERM, signal_hook::consts::SIGHUP] {
         let _ = signal_hook::flag::register(signal, stop.clone());
     }
+    watch_hangup(stop.clone());
     let mut terminal = ratatui::init();
     if let Ok(size) = ratatui::crossterm::terminal::size() {
         app.size = size;
