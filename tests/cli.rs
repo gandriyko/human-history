@@ -106,10 +106,22 @@ fn index_then_search_as_table_and_json() {
     assert!(table.contains("Approval workflow") && table.contains("Approvals perf"), "{table}");
     assert!(!table.contains('\x1b'), "no colours when piped");
     assert!(!table.contains('★'));
-    let db = rusqlite::Connection::open(env.path("index.sqlite3")).unwrap();
-    db.execute("INSERT INTO favorites SELECT key FROM sessions WHERE title = 'Approvals perf'", []).unwrap();
+    let favorite = |args: &[&str]| -> bool {
+        let rows: Vec<Value> = serde_json::from_str(&env.ok(args)).unwrap();
+        rows.iter().find(|r| r["title"] == "Approvals perf").unwrap()["favorite"].as_bool().unwrap()
+    };
+    for _ in 0..2 {
+        // Idempotent: running it twice keeps the session a favorite.
+        assert!(env.ok(&["favorite", "1111"]).starts_with("★ favorite 1111"));
+    }
+    assert!(favorite(&["search", "approval", "--json"]));
     let table = env.ok(&["search", "approval"]);
     assert!(table.contains("★ Approvals perf") && !table.contains("★ Approval workflow"), "{table}");
+    for _ in 0..2 {
+        assert!(env.ok(&["unfavorite", "1111"]).starts_with("not a favorite 1111"));
+    }
+    assert!(!favorite(&["search", "approval", "--json"]));
+    assert!(stderr(&env.run(&["favorite", "nope"])).contains("no session matching"));
     assert!(env.ok(&["search", "zzzqqq"]).contains("no matches"));
 
     let bad = env.run(&["search", "x", "-s", "everything"]);

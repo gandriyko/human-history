@@ -55,7 +55,7 @@ The result is a JSON array (`[]` when nothing matches), one object per session:
 | `snippet` | Text around the best match, plain text that may span lines (`…` marks cuts) |
 | `hit_role` | `user` or `assistant`: who wrote the best match |
 | `hits`, `match_ids` | How many messages match, and their ids |
-| `favorite`, `path` | Pinned in the TUI; the agent's log file or database |
+| `favorite`, `path` | Marked as a favorite (see section 4); the agent's log file or database |
 
 With `-s title`, `snippet` and `hit_role` are `null` and `hits` is `0`.
 
@@ -73,6 +73,18 @@ instead of the whole output.
 `session` has the same fields as a search row, `text` is the raw message (Markdown as the agent
 wrote it), e.g. `hh show "$id" --json | jq -r '.messages[] | select(.role=="user") | .text'`.
 
+## 4. Mark favorites
+
+```sh
+hh favorite SESSION_ID_OR_PREFIX     # add to favorites
+hh unfavorite SESSION_ID_OR_PREFIX   # remove from favorites
+```
+
+Favorites are starred (`★`) and pinned to the top of the TUI list, and `hh search` stars them in
+its table output; in JSON they have `"favorite": true`. Both commands are idempotent (running
+`favorite` twice keeps the session a favorite) and print the resulting state, the session id and
+its title. Change favorites only when the user asks for it.
+
 ## Recipes
 
 ```sh
@@ -86,9 +98,12 @@ hh search "migration" -s user --agent codex --since 2026-10-01 --json
 # Find a session by its title, then read it
 id=$(hh search "approval workflow" -s title --json --limit 1 | jq -r '.[0].session_id // empty')
 [ -n "$id" ] && hh show "$id" | sed -n '1,120p'
+
+# Star the session we just found
+[ -n "$id" ] && hh favorite "$id"
 ```
 
 ## Errors
 
-Exit code `0` on success (also when nothing matches), `1` for runtime errors (e.g. `hh show` with
-no or an ambiguous match), `2` for invalid options or an invalid config; the message is on stderr.
+Exit code `0` on success (also when nothing matches), `1` for runtime errors (e.g. `hh show`,
+`hh favorite` or `hh unfavorite` with no or an ambiguous match), `2` for invalid options or an invalid config; the message is on stderr.

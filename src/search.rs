@@ -338,6 +338,12 @@ pub fn toggle_favorite(conn: &Connection, key: &str) -> rusqlite::Result<bool> {
     Ok(true)
 }
 
+/// Pin (`on`) or unpin a session; a no-op when it is already in that state.
+pub fn set_favorite(conn: &Connection, key: &str, on: bool) -> rusqlite::Result<()> {
+    let sql = if on { "INSERT OR IGNORE INTO favorites(session_key) VALUES (?)" } else { "DELETE FROM favorites WHERE session_key = ?" };
+    conn.execute(sql, [key]).map(|_| ())
+}
+
 #[derive(serde::Serialize)]
 pub struct MessageRow {
     pub role: String,

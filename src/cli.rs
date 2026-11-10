@@ -10,7 +10,7 @@ use rusqlite::Connection;
 
 use crate::config::{config_path, load_config, Config, ProjectFilter, Scope, Sort, EXAMPLE};
 use crate::model::Agent;
-use crate::search::{Filters, HL_END, HL_START};
+use crate::search::{Filters, SessionRow, HL_END, HL_START};
 use crate::tui::{local_time, project_name};
 use crate::{config, db, herdr, indexer, resume, search, tui};
 
@@ -83,6 +83,16 @@ enum Cmd {
         /// Print the session and its messages as a JSON object
         #[arg(long)]
         json: bool,
+    },
+    /// Mark a session as a favorite (starred and pinned to the top).
+    Favorite {
+        /// Session id (or unique prefix)
+        session: String,
+    },
+    /// Remove a session from the favorites.
+    Unfavorite {
+        /// Session id (or unique prefix)
+        session: String,
     },
     /// Resume the most recent session of the current worktree in its original directory.
     ResumeLast,
@@ -241,9 +251,8 @@ fn search_cmd(
     }
 }
 
-fn show(session: &str, json: bool) {
-    let config = load();
-    let conn = open(&config);
+/// The one session whose id starts with `session`; exits with 1 when there is none or several.
+fn find_session(conn: &Connection, session: &str) -> SessionRow {
     let keys: Vec<String> = conn
         .prepare("SELECT key FROM sessions WHERE session_id LIKE ? || '%'")
         .and_then(|mut stmt| stmt.query_map([session], |r| r.get(0))?.collect())
@@ -251,7 +260,20 @@ fn show(session: &str, json: bool) {
     if keys.len() != 1 {
         fail(1, format!("{} session matching {session:?}", if keys.is_empty() { "no" } else { "ambiguous" }));
     }
-    let row = search::get_session(&conn, &keys[0]).unwrap_or_else(|e| fail(1, e)).expect("key just listed");
+    search::get_session(conn, &keys[0]).unwrap_or_else(|e| fail(1, e)).expect("key just listed")
+}
+
+fn favorite(session: &str, on: bool) {
+    let conn = open(&load());
+    let row = find_session(&conn, session);
+    search::set_favorite(&conn, &row.key, on).unwrap_or_else(|e| fail(1, e));
+    println!("{} {}: {}", if on { "★ favorite" } else { "not a favorite" }, row.session_id, row.title);
+}
+
+fn show(session: &str, json: bool) {
+    let config = load();
+    let conn = open(&config);
+    let row = find_session(&conn, session);
     let messages = search::messages(&conn, &row.key).unwrap_or_else(|e| fail(1, e));
     if json {
         let out = serde_json::json!({ "session": row, "messages": messages });
@@ -365,6 +387,8 @@ pub fn main() {
             search_cmd(&query, scope, project_filter, agent, branch, since, until, cwd, sort, limit, json)
         }
         Some(Cmd::Show { session, json }) => show(&session, json),
+        Some(Cmd::Favorite { session }) => favorite(&session, true),
+        Some(Cmd::Unfavorite { session }) => favorite(&session, false),
         Some(Cmd::ResumeLast) => {
             let workspace = env::var("HERDR_WORKSPACE_ID").ok();
             let target = env::var("HERDR_PANE_ID").ok();
