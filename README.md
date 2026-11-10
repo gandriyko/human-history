@@ -1,7 +1,7 @@
 # human-history
 
 Offline, keyboard-first history browser for **Claude Code**, **Codex CLI**, **OpenCode**,
-**GitHub Copilot CLI** and **pi** sessions, built for
+**GitHub Copilot CLI**, **pi** and **Hermes Agent** sessions, built for
 [Herdr](https://herdr.dev). It shows only the human conversation: your prompts and the agent's
 visible answers. Tool calls, tool results, reasoning, system/hook events and raw JSON are never
 displayed or indexed.

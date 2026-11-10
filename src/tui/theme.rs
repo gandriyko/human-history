@@ -98,7 +98,7 @@ pub struct Theme {
     pub match_bg: Color,
     pub current_match_bg: Color,
     pub user: Color,
-    agents: [(String, Color); 5],
+    agents: [(String, Color); 6],
 }
 
 impl Theme {
@@ -131,6 +131,7 @@ impl Theme {
                 ("opencode".into(), c(&colors.opencode)),
                 ("copilot".into(), c(&colors.copilot)),
                 ("pi".into(), c(&colors.pi)),
+                ("hermes".into(), c(&colors.hermes)),
             ],
         };
         if let Some([primary, accent, warning, error, fg, bg, surface, panel]) = palette(name) {

@@ -32,6 +32,8 @@ pub fn resume_argv(agent: &str, session_id: &str) -> Result<Vec<String>, String>
         // The value is optional: `--resume <id>` may not bind.
         "copilot" => vec!["copilot".into(), format!("--resume={session_id}")],
         "pi" => vec!["pi".into(), "--session".into(), session_id.into()],
+        // Without --no-restore-cwd Hermes would cd back to the recorded directory itself.
+        "hermes" => vec!["hermes".into(), "--resume".into(), session_id.into(), "--no-restore-cwd".into()],
         _ => return Err(format!("resume is not supported for agent {agent:?}")),
     };
     Ok(argv)
@@ -66,7 +68,16 @@ pub fn needs_confirmation(session: &SessionRow, directory: &str) -> bool {
 }
 
 pub fn build_plan(session: &SessionRow, directory: &str) -> Result<ResumePlan, String> {
-    let argv = resume_argv(&session.agent, &session.session_id)?;
+    let mut argv = resume_argv(&session.agent, &session.session_id)?;
+    // A session from a Hermes profile database only resumes within that profile.
+    if session.agent == "hermes"
+        && let Some(profile) = crate::parsers::hermes::profile(Path::new(&session.path))
+    {
+        if !SAFE_ID.is_match(&profile) {
+            return Err(format!("refusing to resume: unexpected Hermes profile {profile:?}"));
+        }
+        argv.splice(1..1, ["-p".to_string(), profile]);
+    }
     // An unknown directory means "here", like Python's Path("").
     let path = if directory.is_empty() { PathBuf::from(".") } else { expand(directory) };
     if !path.is_dir() {
@@ -105,6 +116,8 @@ mod tests {
         assert_eq!(resume_argv("opencode", "ses_1").unwrap(), ["opencode", "--session", "ses_1"]);
         assert_eq!(resume_argv("copilot", "4444-dd").unwrap(), ["copilot", "--resume=4444-dd"]);
         assert_eq!(resume_argv("pi", "5555-ee").unwrap(), ["pi", "--session", "5555-ee"]);
+        let hermes = resume_argv("hermes", "20261105_101500_a1b2c3").unwrap();
+        assert_eq!(hermes, ["hermes", "--resume", "20261105_101500_a1b2c3", "--no-restore-cwd"]);
         assert!(resume_argv("claude", "-rf; rm").is_err());
         assert!(resume_argv("claude", "../x").is_err());
         assert!(resume_argv("vim", "abc").is_err());
@@ -131,6 +144,31 @@ mod tests {
         assert!(!needs_confirmation(&recorded, &format!("{here}/./")));
         assert!(needs_confirmation(&recorded, "/elsewhere"));
         assert!(needs_confirmation(&session(None), &here));
+    }
+
+    #[test]
+    fn hermes_profile_sessions_resume_in_their_profile() {
+        let _env = crate::testutil::lock_env();
+        let dir = tempfile::tempdir().unwrap();
+        crate::testutil::script(&dir.path().join("hermes"), "exit 0");
+        let path = std::env::var_os("PATH");
+        unsafe { std::env::set_var("PATH", dir.path()) };
+        let mut row = session(None);
+        row.agent = "hermes".into();
+        row.session_id = "20261105_101500_a1b2c3".into();
+        row.path = "/h/.hermes/profiles/coder/state.db".into();
+        let plan = build_plan(&row, "/").unwrap();
+        row.path = "/h/.hermes/state.db".into();
+        let default = build_plan(&row, "/").unwrap();
+        row.path = "/h/.hermes/profiles/x;rm/state.db".into();
+        let unsafe_profile = build_plan(&row, "/");
+        match path {
+            Some(p) => unsafe { std::env::set_var("PATH", p) },
+            None => unsafe { std::env::remove_var("PATH") },
+        }
+        assert_eq!(plan.argv, ["hermes", "-p", "coder", "--resume", "20261105_101500_a1b2c3", "--no-restore-cwd"]);
+        assert_eq!(default.argv[1], "--resume");
+        assert!(unsafe_profile.unwrap_err().contains("unexpected Hermes profile"));
     }
 
     #[test]

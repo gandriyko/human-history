@@ -39,7 +39,7 @@ use theme::Theme;
 const SCOPES: [Scope; 4] = [Scope::User, Scope::Assistant, Scope::Both, Scope::Title];
 const FILTERS: [ProjectFilter; 3] = [ProjectFilter::CurrentWorktree, ProjectFilter::Repository, ProjectFilter::All];
 const SORTS: [Sort; 3] = [Sort::LastActivityDesc, Sort::CreatedDesc, Sort::TitleAsc];
-const AGENTS: [&str; 6] = ["all", "claude", "codex", "opencode", "copilot", "pi"];
+const AGENTS: [&str; 7] = ["all", "claude", "codex", "opencode", "copilot", "pi", "hermes"];
 const LIST_ONLY_ACTIONS: [&str; 8] = [
     "cycle_scope",
     "scope_user",

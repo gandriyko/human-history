@@ -16,7 +16,7 @@ use serde_json::Value;
 use crate::config::{expand, Config};
 use crate::git::locate;
 use crate::model::{first_line_title, iso, Agent, ParseResult, State};
-use crate::parsers::{self, opencode};
+use crate::parsers;
 
 const HEAD_BYTES: u64 = 256;
 const BATCH_FILES: usize = 200;
@@ -38,6 +38,7 @@ pub fn roots_for(config: &Config, agent: Agent) -> Vec<PathBuf> {
         Agent::Opencode => &p.opencode,
         Agent::Copilot => &p.copilot,
         Agent::Pi => &p.pi,
+        Agent::Hermes => &p.hermes,
     };
     roots.iter().map(|r| expand(r)).collect()
 }
@@ -61,9 +62,10 @@ pub fn index_all(conn: &Connection, config: &Config) -> rusqlite::Result<IndexSt
         for path in parsers::discover(agent, &roots) {
             seen.insert(path_str(&path));
             stats.scanned += 1;
-            let changed = match agent {
-                Agent::Opencode => index_store(conn, &path, &mut stats)?,
-                _ => index_file(conn, agent, &path, &mut stats)?,
+            let changed = if parsers::is_store(agent) {
+                index_store(conn, agent, &path, &mut stats)?
+            } else {
+                index_file(conn, agent, &path, &mut stats)?
             };
             if changed {
                 pending += 1;
@@ -167,20 +169,20 @@ fn index_file(conn: &Connection, agent: Agent, path: &Path, stats: &mut IndexSta
     Ok(true)
 }
 
-/// Index a database holding many sessions (OpenCode). Its WAL makes `stat` useless for change
-/// detection, so the parser is always asked, with the watermark it returned last time.
-fn index_store(conn: &Connection, path: &Path, stats: &mut IndexStats) -> rusqlite::Result<bool> {
+/// Index a database holding many sessions (OpenCode, Hermes). Its WAL makes `stat` useless for
+/// change detection, so the parser is always asked, with the watermark it returned last time.
+fn index_store(conn: &Connection, agent: Agent, path: &Path, stats: &mut IndexStats) -> rusqlite::Result<bool> {
     let p = path_str(path);
     let state: Option<String> =
         conn.query_row("SELECT state FROM files WHERE path = ?", [&p], |r| r.get(0)).optional()?;
-    let (results, state) = opencode::parse_store(path, load_state(state));
+    let (results, state) = parsers::parse_store(agent, path, load_state(state));
     for result in &results {
-        let key = session_key(Agent::Opencode, result, None, path);
-        stats.messages += store(conn, Agent::Opencode, &key, path, result)?;
+        let key = session_key(agent, result, None, path);
+        stats.messages += store(conn, agent, &key, path, result)?;
     }
     conn.execute(
         "INSERT OR REPLACE INTO files(path, agent, state) VALUES (?, ?, ?)",
-        params![p, Agent::Opencode.as_str(), Value::Object(state).to_string()],
+        params![p, agent.as_str(), Value::Object(state).to_string()],
     )?;
     stats.parsed += u64::from(!results.is_empty());
     Ok(!results.is_empty())
@@ -458,5 +460,56 @@ mod tests {
             e.db.query_row("SELECT COUNT(*) FROM sessions WHERE agent = ?", [agent], |r| r.get(0)).unwrap()
         };
         assert_eq!((count("opencode"), count("copilot")), (1, 0));
+    }
+
+    #[test]
+    fn hermes_databases_index_only_the_human_conversation() {
+        use crate::parsers::hermes::tests::{add, hermes_db, seed, SESSION};
+        let mut e = env();
+        let home = e.root.join("hermes");
+        std::fs::create_dir_all(home.join("profiles/coder")).unwrap();
+        e.config.paths.hermes = vec![lossy(&home)];
+        let main = hermes_db(&home.join("state.db"));
+        seed(&main, 1_762_337_700.0);
+        let coder = hermes_db(&home.join("profiles/coder/state.db"));
+        crate::parsers::hermes::tests::add_session(&coder, "20261106_090000_bbbbbb", "cli", None, 1_762_419_600.0, None);
+        add(&coder, "20261106_090000_bbbbbb", 1_762_419_601.0, "p1", "user", "profile prompt", "");
+        index_all(&e.db, &e.config).unwrap();
+
+        let blob = column(&e.db, "SELECT text FROM messages").into_iter().flatten().collect::<Vec<_>>().join("\n");
+        for marker in FORBIDDEN {
+            assert!(!blob.contains(marker), "{marker}");
+        }
+        let key = format!("hermes:{SESSION}");
+        assert_eq!(
+            conversation(&e.db, &key),
+            pairs(&[
+                ("user", "fix the login bug"),
+                ("assistant", "Reading the auth module."),
+                ("assistant", "The token was never refreshed; fixed."),
+                ("user", "and add a test"),
+            ])
+        );
+        let mut keys = column(&e.db, "SELECT key FROM sessions WHERE agent = 'hermes' ORDER BY key");
+        keys.sort();
+        assert_eq!(keys.len(), 3); // main, its compression continuation and the profile's session
+        let path: String =
+            e.db.query_row("SELECT path FROM sessions WHERE key = 'hermes:20261106_090000_bbbbbb'", [], |r| r.get(0)).unwrap();
+        assert!(path.ends_with("profiles/coder/state.db"));
+
+        // incremental: only the new answer is added, and re-running adds nothing
+        add(&main, SESSION, 1_762_337_730.0, "u12", "assistant", "Added a regression test.", "");
+        assert_eq!(index_all(&e.db, &e.config).unwrap().messages, 1);
+        assert_eq!(index_all(&e.db, &e.config).unwrap().parsed, 0);
+        let found = crate::search::search(
+            &e.db,
+            "regression",
+            crate::config::Scope::Assistant,
+            &crate::search::Filters { agent: Some("hermes".into()), ..Default::default() },
+            crate::config::Sort::LastActivityDesc,
+            10,
+        )
+        .unwrap();
+        assert_eq!(found[0].key, key);
     }
 }

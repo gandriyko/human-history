@@ -49,7 +49,7 @@ At start the cursor is in the session list; press `/` or click the search box to
 | `Esc` | Clear the search; on an empty one, press twice to quit |
 | `p` | Project filter: worktree → repository → all (remembered) |
 | `o` | Choose a project (opens the dropdown) |
-| `a` | Agent: all → Claude → Codex → OpenCode → Copilot → Pi (remembered) |
+| `a` | Agent: all → Claude → Codex → OpenCode → Copilot → Pi → Hermes (remembered) |
 | `s` | Sort: recent / created / title (remembered) |
 | `t` | Theme picker with live preview (remembered) |
 
@@ -129,7 +129,8 @@ hh config --init                      # create the config file from the document
 - Commands are argv lists. Inside Herdr the typed command line quotes every argument for a POSIX
   shell.
 - The commands are `claude --resume <id>`, `codex resume <id>`, `opencode --session <id>`,
-  `copilot --resume=<id>` and `pi --session <id>`.
+  `copilot --resume=<id>`, `pi --session <id>` and `hermes [-p <profile>] --resume <id>
+  --no-restore-cwd` (Hermes would otherwise switch back to the recorded directory itself).
 - Claude Code, OpenCode and pi find sessions by project directory, so resuming one in another
   directory may fail (pi offers to fork it). The dialog says so.
 - `hh resume-last` and `human-history.resume-last` always use the original directory.

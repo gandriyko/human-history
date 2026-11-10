@@ -50,6 +50,18 @@
 - Expanded `/skill:` and `@file` blocks are stripped from the prompt.
 - All branches are shown in file order. The title is the latest `session_info` name.
 
+**Hermes Agent** (`$HERMES_HOME/state.db`, default `~/.hermes`, plus `profiles/<name>/state.db`;
+SQLite, opened read-only):
+- Only `user` text and the `content` of `assistant` messages are kept. Tool calls, `tool` rows,
+  reasoning columns and `system` messages are ignored.
+- Also dropped: compression summaries (`_compressed_summary`), display-only carriers
+  (`display_kind`, e.g. `hidden`), and the background-review harness prompts with the reply that
+  followed them. Structured content stored as `\x00json:` keeps its text parts.
+- Subagent, cron, kanban, tool, batch, one-shot and recovered sessions are skipped. Compression
+  splits (`parent_session_id`) are indexed as their own sessions (`name #2`).
+- Like OpenCode there is no byte offset: each run re-reads the sessions changed since the last one.
+- Sessions from a profile resume with `hermes -p <profile>`.
+
 **Indexing**:
 - Each file's size, mtime, inode, first bytes and the byte offset of its last complete line are
   stored.

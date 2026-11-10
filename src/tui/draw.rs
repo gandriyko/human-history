@@ -472,7 +472,7 @@ fn help_rows(app: &App) -> Vec<(String, String, bool)> {
         row(k("scope_both"), "Search prompts and answers"),
         row(k("cycle_project_filter"), "Worktree → repository → all projects"),
         row(k("choose_project"), "Choose the project (dropdown)"),
-        row(k("cycle_agent"), "All agents → Claude → Codex → OpenCode → Copilot → Pi"),
+        row(k("cycle_agent"), "All agents → Claude → Codex → OpenCode → Copilot → Pi → Hermes"),
         row(k("cycle_sort"), "Sort: last activity / created / title"),
         row(k("choose_theme"), "Theme (previewed while moving; remembered)"),
         row(format!("{} / {}", k("next_match"), k("prev_match")), "Next / previous matching message"),

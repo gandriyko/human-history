@@ -92,6 +92,7 @@ pub enum AgentFilter {
     Opencode,
     Copilot,
     Pi,
+    Hermes,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -166,6 +167,7 @@ pub struct ColorsConfig {
     pub opencode: String,
     pub copilot: String,
     pub pi: String,
+    pub hermes: String,
     #[serde(rename = "match")]
     pub match_: String,
     pub current_match: String,
@@ -182,6 +184,7 @@ impl Default for ColorsConfig {
             opencode: "#5fafff".into(),
             copilot: "#a371f7".into(),
             pi: "#56b6c2".into(),
+            hermes: "#e5c07b".into(),
             match_: "#665c00".into(),
             current_match: "#ff9e3b".into(),
         }
@@ -281,6 +284,8 @@ pub struct PathsConfig {
     pub opencode: Vec<String>,
     pub copilot: Vec<String>,
     pub pi: Vec<String>,
+    /// The Hermes home (`state.db`, `profiles/*/state.db`), or a database file.
+    pub hermes: Vec<String>,
 }
 
 fn env_or(var: &str, default: &str) -> PathBuf {
@@ -306,6 +311,7 @@ impl Default for PathsConfig {
             opencode: vec![opencode],
             copilot: vec![lossy(env_or("COPILOT_HOME", "~/.copilot").join("session-state"))],
             pi,
+            hermes: vec![lossy(env_or("HERMES_HOME", "~/.hermes"))],
         }
     }
 }

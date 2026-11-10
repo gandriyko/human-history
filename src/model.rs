@@ -20,10 +20,12 @@ pub enum Agent {
     Opencode,
     Copilot,
     Pi,
+    Hermes,
 }
 
 impl Agent {
-    pub const ALL: [Agent; 5] = [Agent::Claude, Agent::Codex, Agent::Opencode, Agent::Copilot, Agent::Pi];
+    pub const ALL: [Agent; 6] =
+        [Agent::Claude, Agent::Codex, Agent::Opencode, Agent::Copilot, Agent::Pi, Agent::Hermes];
 
     pub fn as_str(self) -> &'static str {
         match self {
@@ -32,6 +34,7 @@ impl Agent {
             Agent::Opencode => "opencode",
             Agent::Copilot => "copilot",
             Agent::Pi => "pi",
+            Agent::Hermes => "hermes",
         }
     }
 
@@ -42,6 +45,7 @@ impl Agent {
             "opencode" => "OpenCode",
             "copilot" => "Copilot",
             "pi" => "Pi",
+            "hermes" => "Hermes",
             other => other,
         }
     }

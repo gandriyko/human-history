@@ -1,11 +1,12 @@
 //! Agent log parsers. A parser turns one agent log file into normalized human-readable messages.
 //!
 //! Parsing is incremental: callers pass the byte offset (and opaque state) returned by the previous
-//! run. OpenCode keeps every session in one SQLite database and is read by `opencode::parse_store`.
+//! run. OpenCode and Hermes keep every session in one SQLite database, read by `parse_store`.
 
 pub mod claude;
 pub mod codex;
 pub mod copilot;
+pub mod hermes;
 pub mod opencode;
 pub mod pi;
 
@@ -25,6 +26,7 @@ pub fn discover(agent: Agent, roots: &[PathBuf]) -> Vec<PathBuf> {
             Agent::Codex => walk(root, &mut out, &|name| name.starts_with("rollout-") && name.ends_with(".jsonl")),
             Agent::Copilot => out.extend(grandchildren(root, |name| name == "events.jsonl")),
             Agent::Pi => walk(root, &mut out, &|name| name.ends_with(".jsonl")),
+            Agent::Hermes => out.extend(hermes::discover(root)),
             Agent::Opencode if root.is_file() => out.push(root.clone()),
             Agent::Opencode => out.extend(
                 children(root)
@@ -51,7 +53,20 @@ pub fn parse(agent: Agent, path: &Path, offset: u64, state: State) -> io::Result
         Agent::Codex => codex::parse(path, offset, state),
         Agent::Copilot => copilot::parse(path, offset, state),
         Agent::Pi => pi::parse(path, offset, state),
-        Agent::Opencode => unreachable!("OpenCode is a multi-session store: use opencode::parse_store"),
+        Agent::Opencode | Agent::Hermes => unreachable!("a multi-session store: use parse_store"),
+    }
+}
+
+/// Agents whose single file is a database of many sessions.
+pub fn is_store(agent: Agent) -> bool {
+    matches!(agent, Agent::Opencode | Agent::Hermes)
+}
+
+/// The sessions of a multi-session store changed since the watermark in `state`, and the new state.
+pub fn parse_store(agent: Agent, path: &Path, state: State) -> (Vec<ParseResult>, State) {
+    match agent {
+        Agent::Hermes => hermes::parse_store(path, state),
+        _ => opencode::parse_store(path, state),
     }
 }
 

@@ -83,6 +83,7 @@ pub fn env() -> Env {
     config.paths.opencode = vec![];
     config.paths.copilot = vec![];
     config.paths.pi = vec![];
+    config.paths.hermes = vec![];
     config.index.database = Some(lossy(&root.join("index.sqlite3")));
     config.index.auto_refresh = false;
     let db = connect(&config.index.database_path()).unwrap();

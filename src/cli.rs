@@ -31,8 +31,8 @@ struct TuiArgs {
     project_filter: Option<ProjectFilter>,
     #[arg(short, long, value_enum)]
     scope: Option<Scope>,
-    /// all | claude | codex | opencode | copilot | pi
-    #[arg(short, long, value_parser = ["all", "claude", "codex", "opencode", "copilot", "pi"])]
+    /// all | claude | codex | opencode | copilot | pi | hermes
+    #[arg(short, long, value_parser = ["all", "claude", "codex", "opencode", "copilot", "pi", "hermes"])]
     agent: Option<String>,
     /// Initial search text
     #[arg(short, long, default_value = "")]
