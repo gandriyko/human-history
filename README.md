@@ -47,7 +47,8 @@ switches between the current worktree, its repository and all projects.
 ### For coding agents
 
 [`skills/human-history/SKILL.md`](skills/human-history/SKILL.md) is an agent skill: it teaches an
-agent to search your past sessions with `hh search --json` and read them with `hh show`. Link it
+agent to search your past sessions with `hh search --json` and read them with `hh show` (Markdown)
+or `hh show --json` (the session plus each message's role, timestamp and raw text). Link it
 into the skills directory of an agent that supports `SKILL.md` skills, e.g. for Claude Code:
 
 ```sh
