@@ -25,13 +25,13 @@ For Herdr:
 herdr plugin install gandriyko/human-history/herdr-plugin
 ```
 
-For the standalone CLI from a local checkout (installs `human-history` and its alias `hh` into
+For the standalone CLI from a local checkout (installs the `human-history` binary into
 `~/.cargo/bin`):
 
 ```sh
-cargo install --path /path/to/human-history
-hh index
-hh
+cargo install --path /path/to/human-history --bin human-history
+human-history index
+human-history
 ```
 
 The previous Python implementation lives on the `python` branch. Both use the same config and
@@ -47,8 +47,8 @@ switches between the current worktree, its repository and all projects.
 ### For coding agents
 
 [`skills/human-history/SKILL.md`](skills/human-history/SKILL.md) is an agent skill: it teaches an
-agent to search your past sessions with `hh search --json` and read them with `hh show` (Markdown)
-or `hh show --json` (the session plus each message's role, timestamp and raw text). Link it
+agent to search your past sessions with `human-history search --json` and read them with `human-history show` (Markdown)
+or `human-history show --json` (the session plus each message's role, timestamp and raw text). Link it
 into the skills directory of an agent that supports `SKILL.md` skills, e.g. for Claude Code:
 
 ```sh

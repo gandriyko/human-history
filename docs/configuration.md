@@ -6,9 +6,9 @@ The settings live in a TOML file: `~/.config/human-history/config.toml`, or the 
 `$HUMAN_HISTORY_CONFIG`.
 
 ```sh
-hh config --init      # writes the fully documented example (refuses to overwrite; --force does)
+human-history config --init      # writes the fully documented example (refuses to overwrite; --force does)
 $EDITOR ~/.config/human-history/config.toml
-hh config             # validates it and prints the effective settings
+human-history config             # validates it and prints the effective settings
 ```
 
 - Every key is optional, so keep only what you change.
@@ -116,4 +116,4 @@ the file on the first saved choice and moves any previously saved choices from t
 on the next launch. These choices override the defaults in `[search]`, `[ui]` and `[resume]`;
 `--scope`, `--agent` and `--filter` on the command line override them for that launch.
 To be asked where to resume again, delete `resume_directory` from `[remembered]`.
-`hh index --rebuild` does not reset these choices, although it still clears favorites.
+`human-history index --rebuild` does not reset these choices, although it still clears favorites.
