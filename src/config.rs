@@ -2,8 +2,11 @@
 
 use std::collections::BTreeMap;
 use std::env;
+use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use std::path::{Component, Path, PathBuf};
+use std::sync::LazyLock;
 
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 /// Every option, with its default.
@@ -375,6 +378,133 @@ impl Config {
     }
 }
 
+impl Config {
+    /// Action -> comma-separated key names, defaults overridden by `[keys]`.
+    pub fn keymap(&self) -> BTreeMap<String, String> {
+        let mut map: BTreeMap<String, String> =
+            KEY_ACTIONS.iter().map(|(a, k)| (a.to_string(), k.to_string())).collect();
+        map.extend(self.keys.clone());
+        map
+    }
+}
+
+static TABLE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\s*\[+[^\]]+\]+\s*(?:#.*)?$").unwrap());
+static REMEMBERED: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\s*\[remembered\]\s*(?:#.*)?$").unwrap());
+static TRAILING_COMMENT: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\s+#.*$").unwrap());
+
+fn parse_checked(text: &str) -> Result<toml::Table, String> {
+    let table: toml::Table = toml::from_str(text).map_err(|e| e.to_string())?;
+    let config: Config = toml::from_str(text).map_err(|e| e.to_string())?;
+    match config.validate().as_slice() {
+        [] => Ok(table),
+        errors => Err(errors.join("; ")),
+    }
+}
+
+/// Write one TUI choice under `[remembered]` without rewriting unrelated TOML or losing
+/// concurrent choices. Returns false when `only_if_missing` and the key is already set.
+pub fn save_remembered(key: &str, value: &str, only_if_missing: bool) -> Result<bool, String> {
+    let remembered: RememberedConfig = serde_json::from_value(serde_json::json!({ key: value }))
+        .map_err(|_| format!("invalid remembered {key}: {value:?}"))?;
+    if let Some(theme) = &remembered.theme {
+        let mut errors = vec![];
+        check_theme(&mut errors, "remembered.theme", theme);
+        if !errors.is_empty() {
+            return Err(format!("invalid remembered {key}: {value:?}"));
+        }
+    }
+
+    let mut path = config_path();
+    if path.is_symlink() {
+        path = std::fs::canonicalize(&path).map_err(|e| e.to_string())?;
+    }
+    let dir = path.parent().map(Path::to_path_buf).unwrap_or_default();
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let lock = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(format!("{}.lock", path.display()))
+        .map_err(|e| e.to_string())?;
+    lock.lock().map_err(|e| e.to_string())?; // released when `lock` is dropped
+
+    let original = match std::fs::read_to_string(&path) {
+        Ok(text) => text,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
+        Err(e) => return Err(e.to_string()),
+    };
+    let data = parse_checked(&original).map_err(|e| format!("{}: {e}", path.display()))?;
+    let present = data.get("remembered").and_then(|r| r.as_table()).is_some_and(|r| r.contains_key(key));
+    if only_if_missing && present {
+        return Ok(false);
+    }
+
+    let assignment = format!("{key} = {}\n", serde_json::to_string(value).unwrap());
+    let mut lines: Vec<String> = original.split_inclusive('\n').map(str::to_string).collect();
+    let updated = match lines.iter().position(|l| REMEMBERED.is_match(l.trim())) {
+        None => {
+            let prefix = match () {
+                _ if original.is_empty() => "",
+                _ if original.ends_with('\n') => "\n",
+                _ => "\n\n",
+            };
+            format!("{original}{prefix}[remembered]\n{assignment}")
+        }
+        Some(start) => {
+            let end = (start + 1..lines.len()).find(|&i| TABLE.is_match(lines[i].trim())).unwrap_or(lines.len());
+            let field = Regex::new(&format!(r"^\s*{}\s*=", regex::escape(key))).unwrap();
+            match (start + 1..end).find(|&i| field.is_match(&lines[i])) {
+                None => {
+                    if !lines[start].ends_with('\n') {
+                        lines[start].push('\n');
+                    }
+                    lines.insert(start + 1, assignment);
+                }
+                Some(i) => {
+                    let old = lines[i].trim_end_matches(['\r', '\n']);
+                    let comment = TRAILING_COMMENT.find(old).map_or("", |m| m.as_str());
+                    lines[i] = format!("{}{comment}\n", assignment.trim_end());
+                }
+            }
+            lines.concat()
+        }
+    };
+    parse_checked(&updated).map_err(|e| format!("{}: {e}", path.display()))?;
+
+    let mode = std::fs::metadata(&path).map(|m| m.permissions().mode() & 0o7777).unwrap_or(0o600);
+    let temp = dir.join(format!(".config.toml.{}", std::process::id()));
+    let written = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(mode)
+        .open(&temp)
+        .and_then(|mut f| {
+            std::io::Write::write_all(&mut f, updated.as_bytes())?;
+            f.set_permissions(std::fs::Permissions::from_mode(mode))
+        })
+        .and_then(|()| std::fs::rename(&temp, &path));
+    if let Err(e) = written {
+        let _ = std::fs::remove_file(&temp);
+        return Err(e.to_string());
+    }
+    Ok(true)
+}
+
+/// Move old index-database choices into the config without overriding existing choices.
+pub fn migrate_legacy_preferences(conn: &rusqlite::Connection) -> Result<bool, String> {
+    let rows: Vec<(String, String)> = conn
+        .prepare("SELECT key, value FROM kv WHERE key IN ('project_filter', 'sort', 'theme', 'resume_directory')")
+        .and_then(|mut stmt| stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?.collect())
+        .map_err(|e| e.to_string())?;
+    let mut changed = false;
+    for (key, value) in &rows {
+        changed |= save_remembered(key, value, true)?;
+    }
+    for (key, _) in &rows {
+        conn.execute("DELETE FROM kv WHERE key = ?", [key]).map_err(|e| e.to_string())?;
+    }
+    Ok(changed)
+}
+
 pub fn home() -> PathBuf {
     env::home_dir().unwrap_or_else(|| PathBuf::from("/"))
 }
@@ -481,6 +611,29 @@ mod tests {
     fn custom_colors() {
         let config = load("[colors]\nselection = \"teal\"\nmatch = \"rgb(77, 42, 34)\"\n").unwrap();
         assert_eq!(config.colors.selection, "teal");
+    }
+
+    #[test]
+    fn save_remembered_keeps_unrelated_toml() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.toml");
+        let original = "# mine\n[ui]\ntheme = \"nord\"  # keep\n\n[remembered]\nsort = \"created_desc\"  # note\n[index]\nauto_refresh = false\n";
+        std::fs::write(&path, original).unwrap();
+        // ponytail: the only test touching HUMAN_HISTORY_CONFIG, so no lock against parallel tests.
+        unsafe { env::set_var("HUMAN_HISTORY_CONFIG", &path) };
+        assert!(save_remembered("sort", "title_asc", false).unwrap());
+        assert!(save_remembered("scope", "user", false).unwrap());
+        assert!(!save_remembered("scope", "title", true).unwrap());
+        assert!(save_remembered("scope", "nope", false).is_err());
+        assert!(save_remembered("bogus", "x", false).is_err());
+        unsafe { env::remove_var("HUMAN_HISTORY_CONFIG") };
+        let text = std::fs::read_to_string(&path).unwrap();
+        assert_eq!(
+            text,
+            "# mine\n[ui]\ntheme = \"nord\"  # keep\n\n[remembered]\nscope = \"user\"\nsort = \"title_asc\"  # note\n[index]\nauto_refresh = false\n"
+        );
+        let config = load_config(&path).unwrap();
+        assert_eq!(config.remembered.sort, Some(Sort::TitleAsc));
     }
 
     #[test]

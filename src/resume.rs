@@ -7,7 +7,7 @@ use std::sync::LazyLock;
 
 use regex::Regex;
 
-use crate::config::expand;
+use crate::config::{absolute, expand, ResumeDirectory};
 use crate::search::SessionRow;
 
 static SAFE_ID: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$").unwrap());
@@ -44,6 +44,25 @@ pub fn which(name: &str) -> Option<PathBuf> {
     std::env::split_paths(&path)
         .map(|dir| dir.join(name))
         .find(|p| p.metadata().is_ok_and(|m| m.is_file() && m.permissions().mode() & 0o111 != 0))
+}
+
+/// Target directory for a fixed policy; `None` means the user must be asked.
+pub fn directory_for(policy: ResumeDirectory, session: &SessionRow, current: &str) -> Option<String> {
+    match policy {
+        ResumeDirectory::Original => session.cwd.clone().filter(|c| !c.is_empty()),
+        ResumeDirectory::Current => Some(current.to_string()),
+        ResumeDirectory::Ask => None,
+    }
+}
+
+/// `os.path.realpath`: symlinks resolved where the path exists.
+pub fn realpath(path: &str) -> PathBuf {
+    std::fs::canonicalize(path).unwrap_or_else(|_| absolute(Path::new(path)))
+}
+
+/// Resuming anywhere but the session's own directory is never done silently.
+pub fn needs_confirmation(session: &SessionRow, directory: &str) -> bool {
+    session.cwd.as_deref().filter(|c| !c.is_empty()).is_none_or(|cwd| realpath(directory) != realpath(cwd))
 }
 
 pub fn build_plan(session: &SessionRow, directory: &str) -> Result<ResumePlan, String> {

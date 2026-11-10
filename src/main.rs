@@ -11,34 +11,50 @@ mod resume;
 mod search;
 #[cfg(test)]
 mod testutil;
+mod tui;
 
 use std::env;
 use std::io::IsTerminal;
 use std::path::Path;
 use std::process::exit;
 
-use chrono::{DateTime, Local};
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 use rusqlite::Connection;
 
 use config::{config_path, load_config, Config, ProjectFilter, Scope, Sort, EXAMPLE};
-use model::{sanitize, Agent};
-use search::{Filters, SessionRow, HL_END, HL_START};
+use model::Agent;
+use search::{Filters, HL_END, HL_START};
+use tui::{local_time, project_name};
 
 #[derive(Parser)]
 #[command(name = "human-history", about = "Humanized, offline history of Claude Code and Codex sessions.")]
 struct Cli {
     #[command(subcommand)]
     command: Option<Cmd>,
+    #[command(flatten)]
+    tui: TuiArgs,
+}
+
+/// Options not given come from [remembered] in the config.
+#[derive(Args, Default)]
+struct TuiArgs {
+    /// current-worktree | repository | all (default: $HH_FILTER, then the config)
+    #[arg(short = 'f', long = "filter", value_enum)]
+    project_filter: Option<ProjectFilter>,
+    #[arg(short, long, value_enum)]
+    scope: Option<Scope>,
+    /// all | claude | codex | opencode | copilot | pi
+    #[arg(short, long, value_parser = ["all", "claude", "codex", "opencode", "copilot", "pi"])]
+    agent: Option<String>,
+    /// Initial search text
+    #[arg(short, long, default_value = "")]
+    query: String,
 }
 
 #[derive(Subcommand)]
 enum Cmd {
-    /// Browse and search sessions; resume one (not ported to Rust yet).
-    Tui {
-        #[arg(trailing_var_arg = true, allow_hyphen_values = true, hide = true)]
-        args: Vec<String>,
-    },
+    /// Browse and search sessions; resume one (the default command).
+    Tui(TuiArgs),
     /// Incrementally index session logs.
     Index {
         /// Drop the index and parse everything again
@@ -111,33 +127,29 @@ fn cwd() -> String {
         .unwrap_or_else(|| env::current_dir().unwrap_or_default().to_string_lossy().into_owned())
 }
 
-fn local_time(value: Option<&str>, fmt: &str) -> String {
-    use std::fmt::Write;
-    let Some(value) = value else { return "—".into() };
-    let Ok(t) = DateTime::parse_from_rfc3339(value) else { return value.into() };
-    let mut out = String::new();
-    // An invalid strftime item in the config must not panic.
-    match write!(out, "{}", t.with_timezone(&Local).format(fmt)) {
-        Ok(()) => out,
-        Err(_) => value.into(),
+fn tui_cmd(args: TuiArgs) {
+    let mut config = load();
+    match config::migrate_legacy_preferences(&open(&config)) {
+        Ok(true) => config = load(),
+        Ok(false) => {}
+        Err(e) => eprintln!("{e}"),
     }
-}
-
-/// Repository name (shared by all its worktrees), else the directory name.
-fn project_name(row: &SessionRow) -> String {
-    let file_name = |p: &Path| p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let name = match (&row.repo, row.worktree.as_ref().or(row.cwd.as_ref())) {
-        (Some(repo), _) => {
-            let repo = Path::new(repo);
-            match file_name(repo).as_str() {
-                ".git" => repo.parent().map(file_name).unwrap_or_default(),
-                other => other.strip_suffix(".git").unwrap_or(other).to_string(),
-            }
+    let project_filter = args.project_filter.or_else(|| {
+        let env = env::var("HH_FILTER").ok().filter(|v| !v.is_empty())?;
+        let parsed = serde_json::from_value(serde_json::Value::String(env.clone()));
+        Some(parsed.unwrap_or_else(|_| {
+            fail(2, format!("invalid filter {env:?}; choose from current-worktree, repository, all"))
+        }))
+    });
+    let opts = tui::Options { project_filter, scope: args.scope, agent: args.agent, query: args.query };
+    match tui::run(config, cwd(), opts) {
+        Ok(Some(plan)) => {
+            eprintln!("\x1b[2mResuming {} session in {}…\x1b[0m", plan.agent, plan.directory);
+            fail(1, resume::exec_plan(&plan));
         }
-        (None, Some(path)) => file_name(Path::new(path)),
-        (None, None) => String::new(),
-    };
-    if name.is_empty() { "—".into() } else { sanitize(&name) }
+        Ok(None) => {}
+        Err(e) => fail(1, e),
+    }
 }
 
 struct Style {
@@ -338,10 +350,10 @@ fn config_cmd(init: bool, force: bool) {
 }
 
 fn main() {
-    match Cli::parse().command {
-        None | Some(Cmd::Tui { .. }) => {
-            fail(2, "the TUI is not ported to Rust yet: run the Python `human-history tui`")
-        }
+    let cli = Cli::parse();
+    match cli.command {
+        None => tui_cmd(cli.tui),
+        Some(Cmd::Tui(args)) => tui_cmd(args),
         Some(Cmd::Index { rebuild }) => index(rebuild),
         Some(Cmd::Search { query, scope, project_filter, agent, branch, since, until, cwd, sort, limit }) => {
             search_cmd(&query, scope, project_filter, agent, branch, since, until, cwd, sort, limit)

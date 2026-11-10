@@ -1,13 +1,14 @@
 //! Session listing, scoped FTS5 search and fuzzy title matching.
 
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::LazyLock;
 
 use regex::Regex;
 use rusqlite::types::Value as Sql;
 use rusqlite::{params_from_iter, Connection, OptionalExtension, Row};
 
-use crate::config::{ProjectFilter, Scope, Sort};
+use crate::config::{absolute, expand, ProjectFilter, Scope, Sort};
 use crate::git::locate;
 
 /// Snippet markers; control chars never survive `sanitize()`.
@@ -283,14 +284,63 @@ pub fn search_titles(
     Ok(scored.into_iter().take(limit).map(|(_, r)| r).collect())
 }
 
+static FILTER_TOKEN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(^|\s)(agent|branch|since|until|cwd):(\S+)").unwrap());
+
+/// Pull `agent: branch: since: until: cwd:` tokens out of a search string.
+pub fn split_filters(text: &str, filters: &Filters) -> (String, Filters) {
+    let mut out = filters.clone();
+    let mut found = false;
+    for c in FILTER_TOKEN.captures_iter(text) {
+        found = true;
+        let value = Some(c[3].to_string());
+        match &c[2] {
+            "agent" => out.agent = value,
+            "branch" => out.branch = value,
+            "since" => out.since = value,
+            "until" => out.until = value,
+            _ => {
+                let base = PathBuf::from(filters.cwd.as_deref().unwrap_or("."));
+                let path = base.join(expand(&c[3]));
+                let resolved = std::fs::canonicalize(&path).unwrap_or_else(|_| absolute(&path));
+                out.exact_cwd = Some(resolved.to_string_lossy().into_owned());
+            }
+        }
+    }
+    if !found {
+        return (text.to_string(), out);
+    }
+    (FILTER_TOKEN.replace_all(text, "$1").trim().to_string(), out)
+}
+
+/// Distinct project roots (worktree, else cwd) that have sessions, most recently active first.
+pub fn projects(conn: &Connection) -> rusqlite::Result<Vec<String>> {
+    let mut stmt = conn.prepare(
+        "SELECT COALESCE(worktree, cwd) AS root FROM sessions
+         WHERE root IS NOT NULL AND user_count + assistant_count > 0
+         GROUP BY root ORDER BY MAX(updated_at) DESC",
+    )?;
+    stmt.query_map([], |r| r.get(0))?.collect()
+}
+
+/// Pin or unpin a session; returns whether it is now a favorite.
+pub fn toggle_favorite(conn: &Connection, key: &str) -> rusqlite::Result<bool> {
+    if conn.execute("DELETE FROM favorites WHERE session_key = ?", [key])? > 0 {
+        return Ok(false);
+    }
+    conn.execute("INSERT INTO favorites(session_key) VALUES (?)", [key])?;
+    Ok(true)
+}
+
 pub struct MessageRow {
     pub role: String,
+    pub ts: Option<String>,
     pub text: String,
 }
 
 pub fn messages(conn: &Connection, key: &str) -> rusqlite::Result<Vec<MessageRow>> {
-    let mut stmt = conn.prepare("SELECT role, text FROM messages WHERE session_key = ? ORDER BY ts, id")?;
-    stmt.query_map([key], |r| Ok(MessageRow { role: r.get(0)?, text: r.get(1)? }))?.collect()
+    let mut stmt = conn.prepare("SELECT role, ts, text FROM messages WHERE session_key = ? ORDER BY ts, id")?;
+    stmt.query_map([key], |r| Ok(MessageRow { role: r.get(0)?, ts: r.get(1)?, text: r.get(2)? }))?.collect()
 }
 
 pub fn get_session(conn: &Connection, key: &str) -> rusqlite::Result<Option<SessionRow>> {
@@ -448,6 +498,30 @@ mod tests {
         let exact = Filters { exact_cwd: Some(main.join("src").to_string_lossy().into_owned()), ..ALL };
         let rows = list_sessions(&e.db, &exact, Sort::LastActivityDesc, 200).unwrap();
         assert_eq!(rows.iter().map(|r| r.session_id.as_str()).collect::<Vec<_>>(), ["main"]);
+    }
+
+    #[test]
+    fn inline_filters() {
+        let e = env();
+        index_all(&e.db, &e.config).unwrap();
+        let (text, f) = split_filters("approval agent:codex since:2026-10-01", &ALL);
+        assert_eq!((text.as_str(), f.agent.as_deref(), f.since.as_deref()), ("approval", Some("codex"), Some("2026-10-01")));
+        assert_eq!(keys(&find(&e.db, &text, Scope::Both, &f)), [CODEX_KEY]);
+        let (_, f) = split_filters("branch:legacy", &ALL);
+        let rows = list_sessions(&e.db, &f, Sort::LastActivityDesc, 200).unwrap();
+        assert_eq!(keys(&rows), ["codex:33333333-cccc-4ddd-8eee-000000000003"]);
+        assert_eq!(split_filters("xagent:codex", &ALL).1.agent, None);
+    }
+
+    #[test]
+    fn favorites_pinned_first() {
+        let e = env();
+        index_all(&e.db, &e.config).unwrap();
+        let last = list_sessions(&e.db, &ALL, Sort::LastActivityDesc, 200).unwrap().pop().unwrap();
+        assert!(toggle_favorite(&e.db, &last.key).unwrap());
+        let first = &list_sessions(&e.db, &ALL, Sort::LastActivityDesc, 200).unwrap()[0];
+        assert!(first.key == last.key && first.favorite);
+        assert!(!toggle_favorite(&e.db, &last.key).unwrap());
     }
 
     #[test]
