@@ -15,7 +15,7 @@ use crate::tui::{local_time, project_name};
 use crate::{config, db, herdr, indexer, resume, search, tui};
 
 #[derive(Parser)]
-#[command(name = "human-history", about = "Humanized, offline history of Claude Code and Codex sessions.")]
+#[command(name = "human-history", version, about = "Humanized, offline history of Claude Code and Codex sessions.")]
 struct Cli {
     #[command(subcommand)]
     command: Option<Cmd>,
