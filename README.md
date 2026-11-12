@@ -1,10 +1,28 @@
+<div align="center">
+
 # human-history
 
 **Search and resume your coding-agent sessions: offline, from the keyboard.**
 
-Works with Claude Code, Codex CLI, OpenCode, GitHub Copilot CLI, pi and Hermes Agent. It shows only
-the human conversation (your prompts and the agents' visible answers), never tool calls, reasoning
-or raw JSON.
+[![Rust 1.89+](https://img.shields.io/badge/Rust-1.89%2B-CE422B?logo=rust&logoColor=white)](https://www.rust-lang.org)
+[![macOS | Linux](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-555?logo=apple&logoColor=white)](#install)
+[![SQLite FTS5](https://img.shields.io/badge/SQLite-FTS5-003B57?logo=sqlite&logoColor=white)](docs/internals.md)
+[![ratatui](https://img.shields.io/badge/TUI-ratatui-7C3AED)](https://ratatui.rs)
+[![MCP server](https://img.shields.io/badge/MCP-server-000?logo=modelcontextprotocol&logoColor=white)](#for-agents)
+![Offline](https://img.shields.io/badge/network-none-2EA043)
+[![MIT license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
+[![Claude Code](https://img.shields.io/badge/Claude_Code-D97757?logo=claude&logoColor=white)](https://claude.com/claude-code)
+[![Codex CLI](https://img.shields.io/badge/Codex_CLI-412991)](https://github.com/openai/codex)
+[![OpenCode](https://img.shields.io/badge/OpenCode-222)](https://opencode.ai)
+[![Copilot CLI](https://img.shields.io/badge/Copilot_CLI-24292F?logo=githubcopilot&logoColor=white)](https://github.com/github/copilot-cli)
+![pi](https://img.shields.io/badge/pi-444)
+![Hermes Agent](https://img.shields.io/badge/Hermes_Agent-444)
+
+</div>
+
+It shows only the human conversation (your prompts and the agents' visible answers), never tool
+calls, reasoning or raw JSON.
 
 ![Session list: age, agent, project and title of every session](docs/screenshots/home.png)
 
@@ -54,3 +72,7 @@ ln -s "$PWD/skills/human-history" ~/.claude/skills/human-history
 [Internals and development](docs/internals.md)
 
 The earlier Python version lives on the `python` branch and uses the same config and index.
+
+## License
+
+[MIT](LICENSE)
