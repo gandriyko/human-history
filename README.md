@@ -61,7 +61,12 @@ ln -s /path/to/human-history/skills/human-history ~/.claude/skills/human-history
 exposes the same history as three tools: `search_sessions`, `read_session` and `set_favorite`. The
 skill (shell commands) and the MCP server are alternatives; MCP is for agents without a shell.
 
+The agent starts the installed `human-history` binary, so install it first. It needs Rust 1.89 or
+newer; `--locked` builds with the dependency versions from `Cargo.lock` (without it Cargo resolves
+them again):
+
 ```sh
+cargo install --locked --path /path/to/human-history
 claude mcp add human-history -- human-history mcp
 ```
 
