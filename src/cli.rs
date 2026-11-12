@@ -12,7 +12,7 @@ use crate::config::{config_path, load_config, Config, ProjectFilter, Scope, Sort
 use crate::model::Agent;
 use crate::search::{Filters, SessionRow, HL_END, HL_START};
 use crate::tui::{local_time, project_name};
-use crate::{config, db, herdr, indexer, resume, search, tui};
+use crate::{config, db, herdr, indexer, mcp, resume, search, tui};
 
 #[derive(Parser)]
 #[command(name = "human-history", version, about = "Humanized, offline history of Claude Code and Codex sessions.")]
@@ -96,6 +96,8 @@ enum Cmd {
     },
     /// Resume the most recent session of the current worktree in its original directory.
     ResumeLast,
+    /// Serve the history to AI agents over MCP (stdio).
+    Mcp,
     /// Entry point for Herdr plugin actions (see herdr-plugin/herdr-plugin.toml).
     #[command(hide = true)]
     HerdrAction { action: String },
@@ -253,14 +255,7 @@ fn search_cmd(
 
 /// The one session whose id starts with `session`; exits with 1 when there is none or several.
 fn find_session(conn: &Connection, session: &str) -> SessionRow {
-    let keys: Vec<String> = conn
-        .prepare("SELECT key FROM sessions WHERE session_id LIKE ? || '%'")
-        .and_then(|mut stmt| stmt.query_map([session], |r| r.get(0))?.collect())
-        .unwrap_or_else(|e| fail(1, e));
-    if keys.len() != 1 {
-        fail(1, format!("{} session matching {session:?}", if keys.is_empty() { "no" } else { "ambiguous" }));
-    }
-    search::get_session(conn, &keys[0]).unwrap_or_else(|e| fail(1, e)).expect("key just listed")
+    search::find_session(conn, session).unwrap_or_else(|e| fail(1, e))
 }
 
 fn favorite(session: &str, on: bool) {
@@ -397,6 +392,7 @@ pub fn main() {
             }
         }
         Some(Cmd::HerdrAction { action }) => herdr_action(&action),
+        Some(Cmd::Mcp) => mcp::serve(),
         Some(Cmd::Config { init, force }) => config_cmd(init, force),
     }
 }

@@ -293,3 +293,81 @@ fn herdr_actions_open_and_toggle_the_history_pane() {
     assert!(env.calls().last().unwrap().starts_with("notification show human-history --body Indexed 3 changed files"));
     assert_eq!(action("bogus").status.code(), Some(2));
 }
+
+#[test]
+fn mcp_server_speaks_json_rpc_over_stdio() {
+    use std::io::Write;
+    use std::process::Stdio;
+
+    let env = Env::new();
+    let call = |id: u64, name: &str, arguments: Value| {
+        serde_json::json!({"jsonrpc": "2.0", "id": id, "method": "tools/call", "params": {"name": name, "arguments": arguments}})
+            .to_string()
+    };
+    let requests = [
+        r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"t","version":"0"}}}"#.to_string(),
+        r#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#.to_string(),
+        r#"{"jsonrpc":"2.0","id":2,"method":"tools/list"}"#.to_string(),
+        r#"{"jsonrpc":"2.0","id":3,"method":"ping"}"#.to_string(),
+        call(4, "search_sessions", serde_json::json!({"query": "approval"})),
+        call(5, "search_sessions", serde_json::json!({"query": "aprvl wrkflw", "scope": "title"})),
+        call(6, "read_session", serde_json::json!({"session_id": "1111", "limit": 1})),
+        call(7, "read_session", serde_json::json!({"session_id": "1111", "role": "assistant"})),
+        call(8, "set_favorite", serde_json::json!({"session_id": "1111", "favorite": true})),
+        call(9, "search_sessions", serde_json::json!({"query": "approval", "favorites_only": true})),
+        call(10, "read_session", serde_json::json!({"session_id": "nope"})),
+        call(11, "no_such_tool", serde_json::json!({})),
+        call(12, "search_sessions", serde_json::json!({"query": "x", "project_filter": "repository"})),
+        r#"{"jsonrpc":"2.0","id":13,"method":"nope"}"#.to_string(),
+        "this is not json".to_string(),
+        call(15, "search_sessions", serde_json::json!({"query": "x", "scope": "everything"})),
+    ];
+    let mut child = env.command(&["mcp"]).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();
+    let mut stdin = child.stdin.take().unwrap();
+    stdin.write_all(format!("{}\n", requests.join("\n")).as_bytes()).unwrap();
+    drop(stdin);
+    let out = child.wait_with_output().unwrap();
+    assert!(out.status.success());
+    let lines: Vec<Value> =
+        String::from_utf8(out.stdout).unwrap().lines().map(|l| serde_json::from_str(l).expect(l)).collect();
+    assert_eq!(lines.len(), requests.len() - 1, "one response per request, none for the notification");
+    let by_id = |id: u64| lines.iter().find(|l| l["id"] == id).unwrap_or_else(|| panic!("no response for {id}"));
+
+    assert_eq!(by_id(1)["result"]["protocolVersion"], "2025-06-18");
+    assert_eq!(by_id(1)["result"]["serverInfo"]["name"], "human-history");
+    assert_eq!(by_id(2)["result"]["tools"].as_array().unwrap().len(), 3);
+    assert_eq!(by_id(3)["result"], serde_json::json!({}));
+
+    let sessions = &by_id(4)["result"]["structuredContent"]["sessions"];
+    assert_eq!(sessions.as_array().unwrap().len(), 2);
+    let text: Value = serde_json::from_str(by_id(4)["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
+    assert_eq!(&text["sessions"], sessions);
+    assert!(!sessions.to_string().contains("\\u0002"));
+    assert_eq!(by_id(5)["result"]["structuredContent"]["sessions"][0]["title"], "Approval workflow");
+
+    let page = &by_id(6)["result"]["structuredContent"];
+    assert_eq!(page["session"]["title"], "Approvals perf");
+    assert_eq!((page["messages"].as_array().unwrap().len(), &page["next_offset"]), (1, &Value::from(1)));
+    assert_eq!(page["messages"][0]["index"], 0);
+    let assistant = &by_id(7)["result"]["structuredContent"];
+    assert!(assistant["messages"].as_array().unwrap().iter().all(|m| m["role"] == "assistant"));
+    assert_eq!(assistant["total_messages"], assistant["messages"].as_array().unwrap().len());
+    assert_eq!(assistant["next_offset"], Value::Null);
+
+    assert_eq!(by_id(8)["result"]["structuredContent"]["favorite"], true);
+    let favorites = by_id(9)["result"]["structuredContent"]["sessions"].as_array().unwrap();
+    assert_eq!(favorites.len(), 1);
+    assert_eq!(favorites[0]["title"], "Approvals perf");
+
+    assert_eq!(by_id(10)["result"]["isError"], true);
+    assert!(by_id(10)["result"]["content"][0]["text"].as_str().unwrap().contains("no session matching"));
+    assert_eq!(by_id(11)["error"]["code"], -32602);
+    for id in [12, 15] {
+        let result = &by_id(id)["result"];
+        assert_eq!(result["isError"], true);
+        assert!(result["content"][0]["text"].as_str().unwrap().contains("invalid arguments"));
+    }
+    assert_eq!(by_id(13)["error"]["code"], -32601);
+    let garbage = lines.iter().find(|l| l["id"].is_null()).unwrap();
+    assert_eq!(garbage["error"]["code"], -32700);
+}

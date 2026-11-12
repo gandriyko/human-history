@@ -55,6 +55,24 @@ into the skills directory of an agent that supports `SKILL.md` skills, e.g. for 
 ln -s /path/to/human-history/skills/human-history ~/.claude/skills/human-history
 ```
 
+#### MCP server
+
+`human-history mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server (stdio) that
+exposes the same history as three tools: `search_sessions`, `read_session` and `set_favorite`. The
+skill (shell commands) and the MCP server are alternatives; MCP is for agents without a shell.
+
+```sh
+claude mcp add human-history -- human-history mcp
+```
+
+For Codex, in `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.human-history]
+command = "human-history"
+args = ["mcp"]
+```
+
 - [Usage and keyboard shortcuts](docs/usage.md)
 - [Configuration and themes](docs/configuration.md)
 - [Parsing, indexing and development](docs/internals.md)

@@ -356,6 +356,18 @@ pub fn messages(conn: &Connection, key: &str) -> rusqlite::Result<Vec<MessageRow
     stmt.query_map([key], |r| Ok(MessageRow { role: r.get(0)?, ts: r.get(1)?, text: r.get(2)? }))?.collect()
 }
 
+/// The one session whose id starts with `prefix`.
+pub fn find_session(conn: &Connection, prefix: &str) -> Result<SessionRow, String> {
+    let keys: Vec<String> = conn
+        .prepare("SELECT key FROM sessions WHERE session_id LIKE ? || '%'")
+        .and_then(|mut stmt| stmt.query_map([prefix], |r| r.get(0))?.collect())
+        .map_err(|e| e.to_string())?;
+    if keys.len() != 1 {
+        return Err(format!("{} session matching {prefix:?}", if keys.is_empty() { "no" } else { "ambiguous" }));
+    }
+    get_session(conn, &keys[0]).map_err(|e| e.to_string())?.ok_or_else(|| format!("no session matching {prefix:?}"))
+}
+
 pub fn get_session(conn: &Connection, key: &str) -> rusqlite::Result<Option<SessionRow>> {
     conn.query_row(&format!("SELECT {SESSION_COLUMNS} FROM {FROM} WHERE s.key = ?"), [key], session_row).optional()
 }

@@ -9,8 +9,8 @@ description: Search and read the user's past coding-agent conversations (Claude 
 human conversation: the user's prompts and the agents' visible answers. Tool calls, tool output,
 reasoning and system messages are never indexed, so they cannot be found here.
 
-Never run `human-history` without a subcommand, `human-history tui` or `human-history resume-last`: the first two open an
-interactive TUI, the last one replaces the process with an agent session.
+Never run `human-history` without a subcommand, `human-history tui`, `human-history resume-last` or `human-history mcp`: the first two open an
+interactive TUI, the third replaces the process with an agent session, and the last one blocks waiting on stdin.
 
 ## 1. Refresh the index
 

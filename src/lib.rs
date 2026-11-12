@@ -7,6 +7,7 @@ pub mod db;
 pub mod git;
 pub mod herdr;
 pub mod indexer;
+pub mod mcp;
 pub mod model;
 pub mod parsers;
 pub mod resume;

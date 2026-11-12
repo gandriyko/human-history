@@ -115,10 +115,15 @@ human-history show 11111111                      # print a session as Markdown (
 human-history show 11111111 --json               # session + messages (role, ts, raw text) as JSON
 human-history favorite 11111111                  # star a session (human-history unfavorite removes the star)
 human-history resume-last                        # newest session of this worktree, in its own directory
+human-history mcp                                 # MCP server on stdio for AI agents (blocks on stdin)
 human-history index [--rebuild]
 human-history config                             # validate and print the effective configuration
 human-history config --init                      # create the config file from the documented example
 ```
+
+`human-history mcp` serves three tools: `search_sessions` (search or list sessions with the same
+filters as `search`, refreshing the index first), `read_session` (a conversation, paged with
+`offset` / `next_offset`) and `set_favorite`. Register it with `claude mcp add human-history -- human-history mcp`.
 
 ## Resume rules
 
